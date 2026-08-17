@@ -173,65 +173,95 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 "use strict";
 /* ============================================================
  * UAB „Projektų centras" — projektų ir laiko sekimas.
- * Prisijungimas: Microsoft (MSAL) · Duomenys: SharePoint sąrašai per Graph.
+ * Prisijungimas: Microsoft (MSAL) · Duomenys: SharePoint sąrašai per REST (_api).
  * ============================================================ */
 
 /* ---------------- KONFIGŪRACIJA ---------------- */
-var CONFIG = {
-  clientId: "00d40484-a263-4fbf-bacb-c8ea39a9c0a3",
-  tenantId: "f300c84f-87f0-4d9e-8284-1e36dbe06fbe",
-
-  /* ↓↓↓ UŽPILDYK savo SharePoint svetainę (kur sukūrei sąrašus) ↓↓↓
-     Pvz., jei svetainės adresas https://projektucentras.sharepoint.com/sites/Projektai :
-       sharepointHostname: "projektucentras.sharepoint.com",
-       sitePath:           "/sites/Projektai"                                        */
-  sharepointHostname: "achemosgrupelt.sharepoint.com",
-  sitePath: "/sites/PCPLS",
-
-  /* Sąrašų pavadinimai (turi sutapti su įkeltų Excel failų pavadinimais) */
-  lists: {
-    darbuotojai:"Darbuotojai", skyriai:"Skyriai", projektai:"Projektai",
-    dalys:"ProjektoDalys", priskyrimai:"Priskyrimai", darboLaikas:"DarboLaikas",
-    uzduotys:"Uzduotys", sutartys:"Sutartys", subrangai:"Subrangai"
-  }
-};
-var SCOPES = ["User.Read","Sites.ReadWrite.All"];
-var GRAPH = "https://graph.microsoft.com/v1.0";
+/* Prisijungimas veikia taip pat, kaip veikianti RMC/TKS forma:
+   SharePoint REST (_api) su SharePoint teisėmis (AllSites) — todėl NEreikia
+   Graph „Sites.ReadWrite.All" administratoriaus patvirtinimo.                  */
+var CLIENT_ID = "00d40484-a263-4fbf-bacb-c8ea39a9c0a3"; // „PC projektų laiko sekimas" app registration
+/* Jei tenant'as vis tiek prašo admino patvirtinimo, gali laikinai naudoti jau
+   patvirtintą TKS registraciją: "413e4a48-f490-47b2-a36d-3d4039c87f9e"
+   (tada tik pridėk savo talpinimo URL prie tos registracijos redirect URI).   */
+var TENANT_ID = "f300c84f-87f0-4d9e-8284-1e36dbe06fbe";
+var SP_SITE_URL = "https://achemosgrupelt.sharepoint.com/sites/PCPLS";
+var SP_SCOPES = ["https://achemosgrupelt.sharepoint.com/AllSites.Read","https://achemosgrupelt.sharepoint.com/AllSites.Write"];
+var LOGIN_SCOPES = ["User.Read"].concat(SP_SCOPES);
+var CONFIG = { lists:{
+  darbuotojai:"Darbuotojai", skyriai:"Skyriai", projektai:"Projektai",
+  dalys:"ProjektoDalys", priskyrimai:"Priskyrimai", darboLaikas:"DarboLaikas",
+  uzduotys:"Uzduotys", sutartys:"Sutartys", subrangai:"Subrangai"
+}};
 
 /* ---------------- MSAL ---------------- */
 var msalApp = new msal.PublicClientApplication({
-  auth:{ clientId:CONFIG.clientId, authority:"https://login.microsoftonline.com/"+CONFIG.tenantId, redirectUri:location.href.split("#")[0].split("?")[0] },
-  cache:{ cacheLocation:"sessionStorage" }
+  auth:{ clientId:CLIENT_ID, authority:"https://login.microsoftonline.com/"+TENANT_ID, redirectUri:location.href.split("#")[0].split("?")[0] },
+  cache:{ cacheLocation:"localStorage" }
 });
-var account=null, siteId=null;
+var account=null;
+var IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-async function getToken(){
-  var req={scopes:SCOPES, account:account};
+async function spToken(){
+  var req={scopes:SP_SCOPES, account:account};
   try{ return (await msalApp.acquireTokenSilent(req)).accessToken; }
-  catch(e){ return (await msalApp.acquireTokenPopup(req)).accessToken; }
+  catch(e){ if(IS_MOBILE){ await msalApp.acquireTokenRedirect(req); throw new Error("Nukreipiama į prisijungimą — bandykite dar kartą."); } return (await msalApp.acquireTokenPopup(req)).accessToken; }
 }
-async function gfetch(path, opts){
+/* žemo lygio SharePoint REST kvietimas (odata=verbose) */
+async function spReq(path, opts){
   opts=opts||{};
-  var tok=await getToken();
-  var h=Object.assign({Authorization:"Bearer "+tok}, opts.headers||{});
-  if(opts.body){ h["Content-Type"]="application/json"; }
-  var res=await fetch(GRAPH+path, {method:opts.method||"GET", headers:h, body:opts.body?JSON.stringify(opts.body):undefined});
-  if(!res.ok){ var t=await res.text(); throw new Error("Graph "+res.status+" @ "+path+" — "+t.slice(0,300)); }
-  return res.status===204?null:res.json();
+  var tok=await spToken();
+  var url=path.indexOf("http")===0?path:SP_SITE_URL+path;
+  var h=Object.assign({Authorization:"Bearer "+tok, Accept:"application/json;odata=verbose"}, opts.headers||{});
+  var body;
+  if(opts.body!=null){ h["Content-Type"]="application/json;odata=verbose"; body=JSON.stringify(opts.body); }
+  var res=await fetch(url,{method:opts.method||"GET", headers:h, body:body});
+  if(!res.ok){ var t=await res.text(); var m=res.status; try{ m=JSON.parse(t).error.message.value||res.status; }catch(e){} throw new Error("SharePoint "+res.status+" — "+m); }
+  if(res.status===204) return null;
+  var j=await res.json(); return j.d;
 }
-async function resolveSite(){
-  var r=await gfetch("/sites/"+CONFIG.sharepointHostname+":"+CONFIG.sitePath);
-  return r.id;
+function spGet(path){ return spReq(path); }
+
+/* sąrašo metaduomenys: įrašo tipas + stulpelių vidiniai vardai
+   (Excel sukurtų sąrašų stulpelių vidiniai vardai skiriasi nuo matomų) */
+var META={};
+async function getMeta(name){
+  if(META[name]) return META[name];
+  var a=await spGet("/_api/web/lists/getbytitle('"+name+"')?$select=ListItemEntityTypeFullName");
+  var b=await spGet("/_api/web/lists/getbytitle('"+name+"')/fields?$select=Title,InternalName,ReadOnlyField,Hidden");
+  META[name]={ type:a.ListItemEntityTypeFullName, fields:(b.results||[]) };
+  return META[name];
 }
-async function listItems(listName){
-  var out=[], url="/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items?$expand=fields&$top=999";
-  while(url){ var r=await gfetch(url); out=out.concat(r.value||[]); url=r["@odata.nextLink"]?r["@odata.nextLink"].replace(GRAPH,""):null; }
-  return out.map(function(it){ var f=it.fields||{}; f.__id=it.id; return f; });
+function writeMapOf(meta){ var m={}; meta.fields.forEach(function(f){ if(!f.Hidden&&!f.ReadOnlyField) m[f.Title.trim().toLowerCase()]=f.InternalName; }); return m; }
+
+async function listItems(name){
+  var meta=await getMeta(name);
+  var url="/_api/web/lists/getbytitle('"+name+"')/items?$top=5000", out=[];
+  while(url){ var d=await spGet(url); out=out.concat(d.results||[]); url=d.__next||null; }
+  return out.map(function(it){
+    var o={__id:(it.Id!=null?it.Id:it.ID)};
+    meta.fields.forEach(function(f){ if(f.Hidden) return; var v=it[f.InternalName]; if(v!=null&&v!==""&&o[f.Title]==null) o[f.Title]=v; });
+    return o;
+  });
 }
-function addItem(listName, fields){ return gfetch("/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items",{method:"POST",body:{fields:fields}}); }
-function patchItem(listName, id, fields){ return gfetch("/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items/"+id+"/fields",{method:"PATCH",body:fields}); }
-function delItem(listName, id){ return gfetch("/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items/"+id,{method:"DELETE"}); }
-/* pirmas stulpelis kuriant sąrašą iš Excel tampa Title — skaitom su atsarga */
+function buildBody(meta, fields){
+  var wmap=writeMapOf(meta), body={ "__metadata":{ "type":meta.type } };
+  Object.keys(fields).forEach(function(disp){ var internal=wmap[disp.toLowerCase()]||(disp==="Title"?"Title":null); if(internal!=null&&fields[disp]!=null) body[internal]=fields[disp]; });
+  return body;
+}
+async function addItem(name, fields){
+  var meta=await getMeta(name);
+  var d=await spReq("/_api/web/lists/getbytitle('"+name+"')/items",{method:"POST", body:buildBody(meta,fields)});
+  return { id:(d.Id!=null?d.Id:d.ID) };
+}
+async function patchItem(name, id, fields){
+  var meta=await getMeta(name);
+  await spReq("/_api/web/lists/getbytitle('"+name+"')/items("+id+")",{method:"POST", body:buildBody(meta,fields), headers:{"X-HTTP-Method":"MERGE","If-Match":"*"}});
+}
+async function delItem(name, id){
+  await spReq("/_api/web/lists/getbytitle('"+name+"')/items("+id+")",{method:"POST", headers:{"X-HTTP-Method":"DELETE","If-Match":"*"}});
+}
+/* pirmas stulpelis kuriant sąrašą iš Excel gali tapti Title — skaitom su atsarga */
 function F(f, name){ return (f[name]!=null && f[name]!=="")?f[name]:f.Title; }
 
 /* ---------------- utils ---------------- */
@@ -500,7 +530,7 @@ function render(){
     (state.saving?'<div class="saving">Išsaugoma…</div>':'');
 }
 
-/* =========================== SAVE HELPERS (Graph) =========================== */
+/* =========================== SAVE HELPERS (SharePoint REST) =========================== */
 function busy(on){state.saving=on;render();}
 async function withSave(fn){ busy(true); try{ await fn(); }catch(e){ alert("Nepavyko išsaugoti:\n"+e.message); }finally{ busy(false);} }
 var L=CONFIG.lists;
@@ -524,13 +554,13 @@ async function clearCell(){ var m=state.modal;state.modal=null;
   });
 }
 async function saveTask(){var t=document.getElementById("tk-text").value.trim(),due=document.getElementById("tk-due").value;if(!t){alert("Įvesk užduotį.");return;}var p=selProject();state.modal=null;
-  await withSave(async function(){var res=await addItem(L.uzduotys,{Title:t,Uzduotis:t,ProjektoNr:p.id,Terminas:due||iso(14)});p.tasks.push({text:t,due:due||iso(14),spId:res.id});});
+  await withSave(async function(){var res=await addItem(L.uzduotys,{Title:p.id,ProjektoNr:p.id,Uzduotis:t,Terminas:due||iso(14)});p.tasks.push({text:t,due:due||iso(14),spId:res.id});});
 }
 async function delTask(sp){var p=selProject();state.modal=null;await withSave(async function(){if(sp)await delItem(L.uzduotys,sp);p.tasks=p.tasks.filter(function(t){return String(t.spId)!==String(sp);});});}
 async function saveRevSub(isRev){var t=document.getElementById("rv-title").value.trim(),date=document.getElementById("rv-date").value,sum=Number(document.getElementById("rv-sum").value)||0;if(!t){alert("Įvesk pavadinimą.");return;}var p=projById(state.pelId);state.modal=null;
   await withSave(async function(){
-    if(isRev){var res=await addItem(L.sutartys,{Title:t,Sutartis:t,ProjektoNr:p.id,Data:date||null,SumaBePVM:sum});p.revenue.push({title:t,date:dOnly(date),sum:sum,spId:res.id});}
-    else{var r2=await addItem(L.subrangai,{Title:t,Tiekejas:t,ProjektoNr:p.id,Data:date||null,SumaBePVM:sum});p.subrangai.push({title:t,date:dOnly(date),sum:sum,spId:r2.id});}
+    if(isRev){var res=await addItem(L.sutartys,{Title:p.id,ProjektoNr:p.id,Sutartis:t,Data:date||null,SumaBePVM:sum});p.revenue.push({title:t,date:dOnly(date),sum:sum,spId:res.id});}
+    else{var r2=await addItem(L.subrangai,{Title:p.id,ProjektoNr:p.id,Tiekejas:t,Data:date||null,SumaBePVM:sum});p.subrangai.push({title:t,date:dOnly(date),sum:sum,spId:r2.id});}
   });
 }
 async function delRevSub(isRev,sp){var p=projById(state.pelId);
@@ -592,14 +622,27 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
 });
 
 /* =========================== BOOT / AUTH =========================== */
-function configReady(){ return CONFIG.sharepointHostname.indexOf("PAKEISK")<0 && CONFIG.sitePath.indexOf("PAKEISK")<0; }
-async function doLogin(){ try{ await msalApp.loginRedirect({scopes:SCOPES}); }catch(e){ state.err=e.message; render(); } }
+async function doLogin(){
+  var request={scopes:LOGIN_SCOPES};
+  if(IS_MOBILE){ try{ await msalApp.loginRedirect(request); }catch(e){ state.err="Prisijungti nepavyko: "+e.message; render(); } return; }
+  try{
+    var resp=await msalApp.loginPopup(request);
+    account=resp.account; msalApp.setActiveAccount(account);
+    await afterLogin();
+  }catch(e){
+    if(["block_nested_popups","popup_window_error","empty_window_error"].indexOf(e.errorCode)>=0){ try{ await msalApp.loginRedirect(request); }catch(e2){ state.err="Prisijungti nepavyko: "+e2.message; render(); } }
+    else if(e.errorCode!=="user_cancelled"){ state.err="Prisijungti nepavyko: "+e.message; render(); }
+  }
+}
+async function afterLogin(){
+  state.meEmail=(account.username||"").toLowerCase();
+  state.meName=account.name;
+  await loadEverything();
+}
 
 async function loadEverything(){
   state.phase="loading"; render();
-  if(!configReady()){ state.phase="fatal"; state.err="Programa neturi SharePoint svetainės adreso. Faile, CONFIG bloke, įrašyk sharepointHostname ir sitePath (žr. komentarą)."; render(); return; }
   try{
-    siteId=await resolveSite();
     var names=CONFIG.lists;
     var res=await Promise.all([
       listItems(names.darbuotojai), listItems(names.skyriai), listItems(names.projektai),
@@ -614,7 +657,7 @@ async function loadEverything(){
     state.phase="app"; state.view="list"; state.tab="projektai"; render();
   }catch(e){
     state.phase="fatal";
-    state.err="Nepavyko pasiekti SharePoint duomenų.\n\n"+e.message+"\n\nDažniausios priežastys: (1) neteisingas svetainės adresas CONFIG bloke; (2) sąrašai dar nesukurti arba kitaip pavadinti; (3) programai dar nesuteiktas administratoriaus sutikimas Sites.ReadWrite.All leidimui.";
+    state.err="Nepavyko pasiekti SharePoint duomenų.\n\n"+e.message+"\n\nDažniausios priežastys: (1) sąrašai dar nesukurti arba kitaip pavadinti nei "+Object.keys(CONFIG.lists).length+" laukiami; (2) šio talpinimo adresas nepridėtas prie programos registracijos redirect URI; (3) neturi teisių į svetainę "+SP_SITE_URL+".";
     render();
   }
 }
@@ -627,10 +670,7 @@ async function loadEverything(){
     else { var accs=msalApp.getAllAccounts(); if(accs.length) account=accs[0]; }
     if(!account){ state.phase="login"; render(); return; }
     msalApp.setActiveAccount(account);
-    // paimam /me identitetą
-    try{ var meRes=await gfetch("/me"); state.meEmail=(meRes.userPrincipalName||meRes.mail||"").toLowerCase(); state.meName=meRes.displayName; }
-    catch(e){ state.meEmail=(account.username||"").toLowerCase(); state.meName=account.name; }
-    await loadEverything();
+    await afterLogin();
   }catch(e){ state.phase="login"; state.err=e.message; render(); }
 })();
 </script>
