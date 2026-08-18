@@ -155,7 +155,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .sel,.inp{width:100%;font-family:var(--sans);font-size:13px;padding:9px 10px;border-radius:5px;border:1px solid var(--line);background:var(--panel);color:var(--ink);outline:none;}
 .sel:focus,.inp:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,94,140,.18);}
-.stagerow{display:grid;grid-template-columns:1fr 74px 1.1fr 30px;gap:8px;align-items:center;margin-bottom:8px;}
+.stagerow{display:grid;grid-template-columns:1fr 52px 118px 1fr 30px;gap:8px;align-items:center;margin-bottom:8px;}
 .iconbtn{width:30px;height:30px;border-radius:5px;border:1px solid var(--line);background:var(--panel);color:var(--steel-500);display:grid;place-items:center;cursor:pointer;}.iconbtn:hover{color:var(--red);}
 .saving{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--steel-900);color:#fff;font-size:12.5px;padding:9px 16px;border-radius:20px;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.25);}
 @media(max-width:860px){
@@ -163,7 +163,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
   .mcard{grid-template-columns:96px 1fr;}.mc-act{grid-column:1/-1;justify-content:flex-start;margin-top:4px;}
   .stg{grid-template-columns:1.4fr 64px 64px 80px;}
   .stg.th span:nth-child(2),.stg.th span:nth-child(5),.gr.row.stg>*:nth-child(2),.gr.row.stg>*:nth-child(5){display:none;}
-  .crow{grid-template-columns:120px 1fr 78px;}.stagerow{grid-template-columns:1fr 58px 1fr 28px;}
+  .crow{grid-template-columns:120px 1fr 78px;}.stagerow{grid-template-columns:1fr 40px 92px 1fr 24px;}
 }
 </style>
 </head>
@@ -268,7 +268,8 @@ function F(f, name){ return (f[name]!=null && f[name]!=="")?f[name]:f.Title; }
 var MS=86400000, CAP=8;
 var today=new Date(); today.setHours(0,0,0,0);
 function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
-function isoD(d){return d.toISOString().slice(0,10);}
+function pad2(n){return (n<10?"0":"")+n;}
+function isoD(d){var x=new Date(d);return x.getFullYear()+"-"+pad2(x.getMonth()+1)+"-"+pad2(x.getDate());}
 function iso(off){return isoD(addDays(today,off));}
 function dOnly(s){return s?String(s).slice(0,10):"";}
 function fmtLT(s){return s?new Date(s).toLocaleDateString("lt-LT",{year:"2-digit",month:"2-digit",day:"2-digit"}):"—";}
@@ -304,7 +305,7 @@ function roleKey(r){ r=(r||"").toLowerCase(); if(r.indexOf("vadov")>=0&&r.indexO
 var PEOPLE=[], SKYRIAI=[], PROJECTS=[];
 var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             selId:null, pelId:null, me:null, meEmail:null,
-            fMonth:"all", fUser:"all", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
+            fFrom:"", fTo:"", fUser:"all", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
 function personByEmail(e){e=(e||"").toLowerCase();return PEOPLE.find(function(p){return (p.email||"").toLowerCase()===e;});}
@@ -340,12 +341,12 @@ function assemble(raw){
       var respName=null; if(assignedEmails.length){ var pe=personByEmail(assignedEmails[0]); respName=pe?pe.name:null; }
       return { code:code, name:skyriusName(code), soldDays:Number(d.ParduotosDienos)||0,
                soldPrice:(d.ParduotaKaina!=null?Number(d.ParduotaKaina):null), rate:skyriusRate(code),
-               resp:respName, assignees:assignedEmails, spId:d.__id };
+               deadline:dOnly(d.DaliesTerminas), resp:respName, assignees:assignedEmails, spId:d.__id };
     });
     return { id:pn, name:f.Pavadinimas||pn, deadline:dOnly(f.Terminas),
              status:((f.Busena||"").toLowerCase().indexOf("uždar")>=0||(f.Busena||"").toLowerCase().indexOf("uzdar")>=0)?"closed":"active",
              pm:(f.VadovoElPastas||"").toLowerCase(),
-             tasks:(tasksBy[pn]||[]).map(function(t){return {text:F(t,"Uzduotis"),due:dOnly(t.Terminas),spId:t.__id};}),
+             tasks:(tasksBy[pn]||[]).map(function(t){var ae=(t.Vykdytojas||"").toLowerCase();var pe=ae?personByEmail(ae):null;return {text:F(t,"Uzduotis"),due:dOnly(t.Terminas),assignee:ae,assigneeName:pe?pe.name:"",spId:t.__id};}),
              revenue:(revBy[pn]||[]).map(function(r){return {title:F(r,"Sutartis"),date:dOnly(r.Data),sum:Number(r.SumaBePVM)||0,spId:r.__id};}),
              subrangai:(subBy[pn]||[]).map(function(r){return {title:F(r,"Tiekejas"),date:dOnly(r.Data),sum:Number(r.SumaBePVM)||0,spId:r.__id};}),
              stages:stages, spId:f.__id };
@@ -360,7 +361,7 @@ function assemble(raw){
 /* ---------------- skaičiavimai ---------------- */
 function stageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((r.pid===pid&&r.code===code)?r.hours:0);},0);}
 function stagePlanned(s){return (s.soldDays||0)*CAP;}
-function stageCost(p,s){return (stageSpent(p.id,s.code)/CAP)*(s.rate||230);}
+function stageCost(p,s){return state.regs.reduce(function(a,r){return a+((r.pid===p.id&&r.code===s.code)?(r.hours/CAP)*rateOf(r.who):0);},0);}
 function totals(p){var pl=0,sp=0;p.stages.forEach(function(s){pl+=stagePlanned(s);sp+=stageSpent(p.id,s.code);});return {planned:pl,spent:sp,left:pl-sp};}
 function profit(p){var rev=(p.revenue||[]).reduce(function(a,r){return a+(r.sum||0);},0);var sub=(p.subrangai||[]).reduce(function(a,r){return a+(r.sum||0);},0);var emp=p.stages.reduce(function(a,s){return a+stageCost(p,s);},0);return {rev:rev,sub:sub,emp:emp,profit:rev-sub-emp};}
 function deadlineChip(p){if(p.status==="closed")return {tone:"grey",txt:"uždarytas"};if(!p.deadline)return {tone:"grey",txt:"—"};var d=daysBetween(today,p.deadline);var tone=d<0?"red":d<=7?"amber":"green";var txt=d<0?(Math.abs(d)+" d. pradelsta"):d===0?"šiandien":("liko "+d+" d.");return {tone:tone,txt:txt};}
@@ -406,14 +407,15 @@ function viewDetail(){
   var t=totals(p),dl=deadlineChip(p),over=t.left<0,pct=t.planned?t.spent/t.planned:0,pm=canManage();
   var rows=p.stages.map(function(s){
     var pl=stagePlanned(s),sp=stageSpent(p.id,s.code),left=pl-sp,o=left<0,pc=pl?sp/pl:0;
-    return '<div class="gr row stg"><span style="font-weight:600;font-size:13px">'+esc(s.name)+'</span>'+
+    var dch=s.deadline?(function(){var dd=daysBetween(today,s.deadline);var tn=dd<0?"red":dd<=7?"amber":"green";return ' <span class="dl dl-'+tn+'" style="margin-left:6px">iki '+fmtLT(s.deadline)+'</span>';})():'';
+    return '<div class="gr row stg"><span style="font-weight:600;font-size:13px">'+esc(s.name)+dch+'</span>'+
       '<span class="who">'+(s.resp?avatar(s.resp)+'<span>'+esc(s.resp)+'</span>':'<span class="muted">skyriui</span>')+'</span>'+
       '<span class="r mono">'+nf(pl)+'</span><span class="r mono">'+nf(sp)+'</span><span class="r mono '+(o?"neg":"")+'">'+nf(left)+'</span>'+
       '<span class="r" style="justify-content:flex-start"><span class="track" style="width:100%"><i class="fill '+barCls(sp,pl)+'" style="width:'+(Math.min(pc,1)*100)+'%"></i></span></span></div>';
   }).join("");
   var tasks=(p.tasks||[]).slice().sort(function(a,b){return new Date(a.due||"2100")-new Date(b.due||"2100");}).map(function(tk){
     var d=tk.due?daysBetween(today,tk.due):999,tone=d<0?"red":d<=7?"amber":"green";
-    return '<div class="task"><span class="tk-txt">'+esc(tk.text)+'</span><span class="tk-due dl dl-'+tone+'">iki '+fmtLT(tk.due)+'</span>'+(pm?'<span class="tk-del" data-act="deltask" data-sp="'+esc(tk.spId||"")+'" title="Šalinti">'+IC.trash+'</span>':'')+'</div>';
+    return '<div class="task"><span class="tk-txt">'+esc(tk.text)+(tk.assigneeName?' <span class="muted" style="font-weight:500">· '+esc(tk.assigneeName)+'</span>':'')+'</span><span class="tk-due dl dl-'+tone+'">iki '+fmtLT(tk.due)+'</span>'+(pm?'<span class="tk-del" data-act="deltask" data-sp="'+esc(tk.spId||"")+'" title="Šalinti">'+IC.trash+'</span>':'')+'</div>';
   }).join("");
   var closeBtn=pm?(p.status==="closed"?'<button class="btn" data-act="reopen">Atidaryti iš naujo</button>':'<button class="btn danger" data-act="closeproj">'+IC.lock+' Uždaryti projektą</button>'):'';
   return '<div class="pane"><button class="backbtn" data-act="back">'+IC.back+' Visi projektai</button>'+
@@ -422,7 +424,7 @@ function viewDetail(){
     '<div class="readout"><div class="ro-lab">Sugaišta / planas, val.</div><div class="ro-row"><span class="ro-n">'+nf(t.spent)+'</span><span class="ro-sep">/</span><span class="ro-e">'+nf(t.planned)+'</span></div>'+
     '<div class="track lg"><i class="fill '+barCls(t.spent,t.planned)+'" style="width:'+(Math.min(pct,1)*100)+'%"></i></div><div class="ro-foot '+(over?"neg":"")+'">'+(over?(IC.warn+' Viršyta '+nf(-t.left)+' val.'):('Liko '+nf(t.left)+' val.'))+'</div></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Užduotys ir terminai</span>'+(pm?'<button class="btn sm" data-act="addtask">'+IC.plus+' Užduotis</button>':'')+'</div><div class="tasks">'+(tasks||'<div class="empty">Užduočių nėra.</div>')+'</div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Projekto dalys — darbuotojų eiga</span></div><div class="gtbl"><div class="gr th stg"><span>Dalis</span><span>Atsakingas</span><span class="r">Planas</span><span class="r">Sugaišta</span><span class="r">Liko</span><span>Eiga</span></div>'+(rows||'<div class="empty">Dalių nėra.</div>')+'</div></div>'+
+    '<div class="section"><div class="sec-bar"><span class="eyebrow">Projekto dalys — darbuotojų eiga</span>'+(pm?'<button class="btn sm" data-act="addstage">'+IC.plus+' Dalis</button>':'')+'</div><div class="gtbl"><div class="gr th stg"><span>Dalis</span><span>Atsakingas</span><span class="r">Planas</span><span class="r">Sugaišta</span><span class="r">Liko</span><span>Eiga</span></div>'+(rows||'<div class="empty">Dalių nėra.</div>')+'</div></div>'+
     (pm?'<div style="margin-top:22px">'+closeBtn+'</div>':'')+'</div>';
 }
 function viewMine(){
@@ -439,12 +441,15 @@ function viewMine(){
     return '<div class="hc sticky"><span class="hmname">Nr. '+esc(it.p.id)+' · '+esc(it.s.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
   }).join("");
   var grid=items.length?'<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:230px repeat('+DAYS.length+', 46px) 60px">'+head+rows+'</div></div>':'<div class="empty">Jums šiuo metu nepriskirta jokių darbų (žr. „Priskyrimai" sąrašą).</div>';
+  var myTasks=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){(p.tasks||[]).forEach(function(tk){if(tk.assignee&&tk.assignee===state.meEmail)myTasks.push({p:p,tk:tk});});});
+  myTasks.sort(function(a,b){return new Date(a.tk.due||"2100")-new Date(b.tk.due||"2100");});
+  var myTasksSection=myTasks.length?('<div class="section" style="margin-top:24px"><div class="sec-bar"><span class="eyebrow">Mano užduotys</span></div><div class="tasks">'+myTasks.map(function(x){var d=x.tk.due?daysBetween(today,x.tk.due):999,tone=d<0?"red":d<=7?"amber":"green";return '<div class="task"><span class="tk-txt">'+esc(x.tk.text)+' <span class="muted" style="font-weight:500">· Nr. '+esc(x.p.id)+'</span></span><span class="tk-due dl dl-'+tone+'">iki '+fmtLT(x.tk.due)+'</span></div>';}).join("")+'</div></div>'):'';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()])+'</span><h1>Mano projektai</h1></div></div>'+
     '<div class="statgrid" style="max-width:660px"><div class="statcard"><div class="v">'+items.length+'</div><div class="l">Mano darbai</div></div>'+
     '<div class="statcard '+(left<0?"warn":"")+'"><div class="v">'+nf(left)+'</div><div class="l">Liko val.</div></div>'+
     '<div class="statcard '+(wkUtil>100?"warn":"")+'"><div class="v">'+wkUtil+'%</div><div class="l">Šios sav. apkrova</div></div></div>'+
     '<div class="sec-bar"><span class="eyebrow">Mano valandos — spausk langelį įvesti ar pasitaisyti</span></div>'+grid+
-    '<div class="legend"><span>Šiandienos stulpelis pažymėtas mėlynai.</span><span><i style="background:rgba(192,58,43,.22)"></i>&gt;'+CAP+' val./d.</span></div></div>';
+    '<div class="legend"><span>Šiandienos stulpelis pažymėtas mėlynai.</span><span><i style="background:rgba(192,58,43,.22)"></i>&gt;'+CAP+' val./d.</span></div>'+myTasksSection+'</div>';
 }
 function viewPelningumas(){
   if(!PROJECTS.length)return '<div class="pane"><h1>Pelningumas</h1><div class="empty">Projektų nėra.</div></div>';
@@ -464,7 +469,7 @@ function viewPelningumas(){
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Išlaidos — subrangai</span><button class="btn sm" data-act="addsub">'+IC.plus+' Subranga</button></div><div class="gtbl"><div class="gr th rev"><span>Tiekėjas / sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(subRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div><div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
 }
-function filteredRegs(){return state.regs.filter(function(r){return (state.fMonth==="all"||r.date.slice(0,7)===state.fMonth)&&(state.fUser==="all"||r.who===state.fUser);});}
+function filteredRegs(){return state.regs.filter(function(r){var okd=(!state.fFrom||r.date>=state.fFrom)&&(!state.fTo||r.date<=state.fTo);return okd&&(state.fUser==="all"||r.who===state.fUser);});}
 function allMonths(){var s={};state.regs.forEach(function(r){if(r.date)s[r.date.slice(0,7)]=1;});return Object.keys(s).sort();}
 function monthShort(k){return LTM[parseInt(k.slice(5,7),10)-1].slice(0,3)+" "+k.slice(2,4);}
 function monthLabel(k){return LTM[parseInt(k.slice(5,7),10)-1]+" "+k.slice(0,4);}
@@ -473,7 +478,6 @@ function viewStats(){
   var FR=filteredRegs(),totalH=FR.reduce(function(a,r){return a+r.hours;},0),users={},projs={};
   FR.forEach(function(r){users[r.who]=1;if(r.pid)projs[r.pid]=1;});
   var months=allMonths();
-  var monthOpts='<option value="all"'+(state.fMonth==="all"?" selected":"")+'>Visi mėnesiai</option>'+months.map(function(k){return '<option value="'+k+'"'+(state.fMonth===k?" selected":"")+'>'+esc(monthLabel(k))+'</option>';}).join("");
   var userOpts='<option value="all"'+(state.fUser==="all"?" selected":"")+'>Visi darbuotojai</option>'+PEOPLE.map(function(p){return '<option value="'+esc(p.name)+'"'+(state.fUser===p.name?" selected":"")+'>'+esc(p.name)+'</option>';}).join("");
   var kpis='<div class="statgrid"><div class="statcard"><div class="v">'+nf(totalH)+'</div><div class="l">Užregistruota val.</div></div><div class="statcard"><div class="v">'+Object.keys(users).length+'</div><div class="l">Darbuotojai</div></div><div class="statcard"><div class="v">'+Object.keys(projs).length+'</div><div class="l">Projektai su įrašais</div></div></div>';
   var ppl=PEOPLE.filter(function(p){return state.fUser==="all"||p.name===state.fUser;});
@@ -484,7 +488,10 @@ function viewStats(){
   var maxU=Math.max.apply(null,Object.keys(byU).map(function(k){return byU[k];}).concat([1]));
   var uc='<div class="panel"><h2>Valandos pagal darbuotoją</h2>'+(ppl.some(function(p){return byU[p.name]>0;})?ppl.map(function(p){return chartRow(p.name,'<b>'+nf(byU[p.name])+'</b> val.',byU[p.name]/maxU,'hsl('+p.hue+' 42% 45%)');}).join(""):'<div class="emptybox">Nėra įrašų.</div>')+'</div>';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+
-    '<div class="filters"><div class="fl"><span class="eyebrow">Mėnuo</span><select class="sel" id="f-month">'+monthOpts+'</select></div><div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div></div></div>'+kpis+heat+uc+'</div>';
+    '<div class="filters"><div class="fl"><span class="eyebrow">Nuo</span><input class="sel" id="f-from" type="date" value="'+esc(state.fFrom||"")+'"></div>'+
+    '<div class="fl"><span class="eyebrow">Iki</span><input class="sel" id="f-to" type="date" value="'+esc(state.fTo||"")+'"></div>'+
+    '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
+    ((state.fFrom||state.fTo)?'<button class="btn sm" data-act="clearrange" style="margin-bottom:1px">Išvalyti datas</button>':'')+'</div></div>'+kpis+heat+uc+'</div>';
 }
 function viewModal(){
   if(!state.modal)return "";
@@ -492,12 +499,14 @@ function viewModal(){
   if(m.type==="cell"){var cur=myDayHours(m.pid,m.code,m.date),pr=projById(m.pid);
     inner='<div class="form"><h3>Mano valandos</h3><p class="sub">Nr. '+esc(m.pid)+' · '+esc(skyriusName(m.code))+' · '+fmtLT(m.date)+'</p><label class="field"><span class="eyebrow">Valandos tą dieną (perrašo)</span><input class="inp" id="cell-h" type="number" min="0" step="0.5" value="'+(cur||"")+'" placeholder="0"></label><button class="btn primary wide" data-act="savecell">Išsaugoti</button>'+(cur?'<button class="btn danger wide" data-act="clearcell" style="margin-top:8px">Išvalyti dieną</button>':'')+'</div>';
   } else if(m.type==="task"){
-    inner='<div class="form"><h3>Nauja užduotis</h3><p class="sub">'+esc(selProject().name)+'</p><label class="field"><span class="eyebrow">Užduotis</span><input class="inp" id="tk-text" placeholder="pvz. SP paruošia užduotį VN"></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="tk-due" type="date" value="'+iso(14)+'"></label><button class="btn primary wide" data-act="savetask">Pridėti</button></div>';
+    inner='<div class="form"><h3>Nauja užduotis</h3><p class="sub">'+esc(selProject().name)+'</p><label class="field"><span class="eyebrow">Užduotis</span><input class="inp" id="tk-text" placeholder="pvz. SP paruošia užduotį VN"></label><label class="field"><span class="eyebrow">Vykdytojas (nebūtina)</span><select class="sel" id="tk-resp"><option value="">— nepriskirta —</option>'+personOptions("")+'</select></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="tk-due" type="date" value="'+iso(14)+'"></label><button class="btn primary wide" data-act="savetask">Pridėti</button></div>';
+  } else if(m.type==="stage"){var skOpts=SKYRIAI.map(function(s){return '<option value="'+esc(s.code)+'">'+esc(s.code)+' — '+esc(s.name)+'</option>';}).join("");
+    inner='<div class="form"><h3>Pridėti dalį</h3><p class="sub">'+esc(selProject().name)+'</p><label class="field"><span class="eyebrow">Skyrius / dalis</span><select class="sel" id="sg-code">'+(skOpts||'<option value="">(nėra „Skyriai" įrašų)</option>')+'</select></label><div class="two"><label class="field"><span class="eyebrow">Parduotos dienos</span><input class="inp" id="sg-days" type="number" min="0" placeholder="0"></label><label class="field"><span class="eyebrow">Parduota kaina, €</span><input class="inp" id="sg-price" type="number" min="0" step="0.01" placeholder="nebūtina"></label></div><div class="two"><label class="field"><span class="eyebrow">Dalies terminas</span><input class="inp" id="sg-due" type="date"></label><label class="field"><span class="eyebrow">Atsakingas</span><select class="sel" id="sg-resp"><option value="">— skyriui —</option>'+personOptions("")+'</select></label></div><button class="btn primary wide" data-act="savestage">Pridėti dalį</button></div>';
   } else if(m.type==="rev"||m.type==="sub"){var isRev=m.type==="rev";
     inner='<div class="form"><h3>'+(isRev?"Sutartis / pajamos":"Subranga / išlaidos")+'</h3><p class="sub">'+esc((projById(state.pelId)||{}).name||"")+'</p><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="rv-title" placeholder="'+(isRev?"Sutarties Nr.":"Tiekėjas / sutartis")+'"></label><div class="two"><label class="field"><span class="eyebrow">Data</span><input class="inp" id="rv-date" type="date"></label><label class="field"><span class="eyebrow">Suma be PVM, €</span><input class="inp" id="rv-sum" type="number" min="0" step="0.01" placeholder="0"></label></div><button class="btn primary wide" data-act="'+(isRev?"saverev":"savesub")+'">Pridėti</button></div>';
   } else if(m.type==="newproject"){wide=" wide";var d=state.draft;
-    var stages=d.stages.map(function(s,i){return '<div class="stagerow"><input class="inp" id="st-code-'+i+'" placeholder="Kodas (SK…)" value="'+esc(s.code)+'"><input class="inp" id="st-days-'+i+'" type="number" min="0" placeholder="d." value="'+esc(s.days)+'"><select class="sel" id="st-resp-'+i+'"><option value="">— skyriui —</option>'+personOptions(s.resp)+'</select><button class="iconbtn" data-act="draft-delstage" data-i="'+i+'">'+IC.trash+'</button></div>';}).join("");
-    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">PV parduoda dalims dienas. Įrašas keliauja į „Projektai" ir „ProjektoDalys" sąrašus.</p><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'"></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="np-deadline" type="date" value="'+esc(d.deadline)+'"></label><div class="sec-bar"><span class="eyebrow">Dalys (parduotos dienos)</span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Dalis</button></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti</button></div>';
+    var stages=d.stages.map(function(s,i){return '<div class="stagerow"><input class="inp" id="st-code-'+i+'" placeholder="Kodas" value="'+esc(s.code)+'"><input class="inp" id="st-days-'+i+'" type="number" min="0" placeholder="d." value="'+esc(s.days)+'"><input class="inp" id="st-due-'+i+'" type="date" title="Dalies terminas" value="'+esc(s.due||"")+'"><select class="sel" id="st-resp-'+i+'"><option value="">— skyriui —</option>'+personOptions(s.resp)+'</select><button class="iconbtn" data-act="draft-delstage" data-i="'+i+'">'+IC.trash+'</button></div>';}).join("");
+    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">PV parduoda dalims dienas ir terminus. Įrašas keliauja į „Projektai" ir „ProjektoDalys" sąrašus.</p><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'"></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="np-deadline" type="date" value="'+esc(d.deadline)+'"></label><div class="sec-bar"><span class="eyebrow">Dalys · kodas / dienos / terminas / atsakingas</span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Dalis</button></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti</button></div>';
   }
   return '<div class="scrim"><div class="sheet'+wide+'"><button class="sheet-x" data-x>'+IC.x+'</button>'+inner+'</div></div>';
 }
@@ -553,8 +562,15 @@ async function clearCell(){ var m=state.modal;state.modal=null;
     state.regs=state.regs.filter(function(r){return !(r.who===state.me&&r.pid===m.pid&&r.code===m.code&&r.date===m.date);});
   });
 }
-async function saveTask(){var t=document.getElementById("tk-text").value.trim(),due=document.getElementById("tk-due").value;if(!t){alert("Įvesk užduotį.");return;}var p=selProject();state.modal=null;
-  await withSave(async function(){var res=await addItem(L.uzduotys,{Title:p.id,ProjektoNr:p.id,Uzduotis:t,Terminas:due||iso(14)});p.tasks.push({text:t,due:due||iso(14),spId:res.id});});
+async function saveTask(){var t=document.getElementById("tk-text").value.trim(),due=document.getElementById("tk-due").value,rn=document.getElementById("tk-resp").value;if(!t){alert("Įvesk užduotį.");return;}var p=selProject();var pe=rn?person(rn):null;state.modal=null;
+  await withSave(async function(){var res=await addItem(L.uzduotys,{Title:p.id,ProjektoNr:p.id,Uzduotis:t,Terminas:due||iso(14),Vykdytojas:pe?pe.email:""});p.tasks.push({text:t,due:due||iso(14),assignee:pe?pe.email:"",assigneeName:pe?pe.name:"",spId:res.id});});
+}
+async function saveStage(){var p=selProject();var code=document.getElementById("sg-code").value,days=Number(document.getElementById("sg-days").value)||0,pv=document.getElementById("sg-price").value,price=(pv===""?null:Number(pv)),due=document.getElementById("sg-due").value,rn=document.getElementById("sg-resp").value;if(!code){alert("Pasirink skyrių / dalį.");return;}var pe=rn?person(rn):null;state.modal=null;
+  await withSave(async function(){
+    var dres=await addItem(L.dalys,{Title:p.id,ProjektoNr:p.id,SkyriausKodas:code,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:due||null});
+    if(rn){ await addItem(L.priskyrimai,{Title:p.id,ProjektoNr:p.id,SkyriausKodas:code,DarbuotojoElPastas:pe?pe.email:"",PlanuotosValandos:days*CAP}); }
+    p.stages.push({code:code,name:skyriusName(code),soldDays:days,soldPrice:price,rate:skyriusRate(code),deadline:dOnly(due),resp:rn||null,assignees:pe?[pe.email]:[],spId:dres.id});
+  });
 }
 async function delTask(sp){var p=selProject();state.modal=null;await withSave(async function(){if(sp)await delItem(L.uzduotys,sp);p.tasks=p.tasks.filter(function(t){return String(t.spId)!==String(sp);});});}
 async function saveRevSub(isRev){var t=document.getElementById("rv-title").value.trim(),date=document.getElementById("rv-date").value,sum=Number(document.getElementById("rv-sum").value)||0;if(!t){alert("Įvesk pavadinimą.");return;}var p=projById(state.pelId);state.modal=null;
@@ -569,15 +585,15 @@ async function delRevSub(isRev,sp){var p=projById(state.pelId);
 async function setStatus(st){var p=selProject();await withSave(async function(){await patchItem(L.projektai,p.spId,{Busena:st==="closed"?"Uždarytas":"Aktyvus"});p.status=st;});}
 function snapshotDraft(){if(!state.draft)return;var g=function(id){var e=document.getElementById(id);return e?e.value:null;};
   var id=g("np-id");if(id!=null)state.draft.id=id;var nm=g("np-name");if(nm!=null)state.draft.name=nm;var dl=g("np-deadline");if(dl!=null)state.draft.deadline=dl;
-  state.draft.stages=state.draft.stages.map(function(s,i){return {code:g("st-code-"+i)!=null?g("st-code-"+i):s.code,days:g("st-days-"+i)!=null?g("st-days-"+i):s.days,resp:g("st-resp-"+i)!=null?g("st-resp-"+i):s.resp};});}
+  state.draft.stages=state.draft.stages.map(function(s,i){return {code:g("st-code-"+i)!=null?g("st-code-"+i):s.code,days:g("st-days-"+i)!=null?g("st-days-"+i):s.days,due:g("st-due-"+i)!=null?g("st-due-"+i):s.due,resp:g("st-resp-"+i)!=null?g("st-resp-"+i):s.resp};});}
 async function createProject(){snapshotDraft();var d=state.draft;var stages=d.stages.filter(function(s){return s.code.trim();});if(!d.id.trim()||!d.name.trim()){alert("Įvesk Nr. ir pavadinimą.");return;}state.modal=null;state.draft=null;
   await withSave(async function(){
     var res=await addItem(L.projektai,{Title:d.id,ProjektoNr:d.id,Pavadinimas:d.name,Terminas:d.deadline||iso(30),Busena:"Aktyvus",VadovoElPastas:state.meEmail});
     var proj={id:d.id,name:d.name,deadline:dOnly(d.deadline),status:"active",pm:state.meEmail,tasks:[],revenue:[],subrangai:[],stages:[],spId:res.id};
     for(var i=0;i<stages.length;i++){var s=stages[i];var pe=s.resp?person(s.resp):null;
-      var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:s.code,ParduotosDienos:Number(s.days)||0,ParduotaKaina:null});
+      var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:s.code,ParduotosDienos:Number(s.days)||0,ParduotaKaina:null,DaliesTerminas:s.due||null});
       if(s.resp){await addItem(L.priskyrimai,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:s.code,DarbuotojoElPastas:pe?pe.email:"",PlanuotosValandos:(Number(s.days)||0)*CAP});}
-      proj.stages.push({code:s.code,name:skyriusName(s.code),soldDays:Number(s.days)||0,soldPrice:null,rate:skyriusRate(s.code),resp:s.resp||null,assignees:pe?[pe.email]:[],spId:dres.id});
+      proj.stages.push({code:s.code,name:skyriusName(s.code),soldDays:Number(s.days)||0,soldPrice:null,rate:skyriusRate(s.code),deadline:dOnly(s.due),resp:s.resp||null,assignees:pe?[pe.email]:[],spId:dres.id});
     }
     PROJECTS.push(proj);state.selId=proj.id;state.view="detail";state.tab="projektai";
   });
@@ -601,23 +617,27 @@ document.addEventListener("click",function(e){
   else if(a==="addtask"){state.modal={type:"task"};render();}
   else if(a==="deltask"){delTask(el.getAttribute("data-sp"));}
   else if(a==="savetask"){saveTask();}
+  else if(a==="addstage"){state.modal={type:"stage"};render();}
+  else if(a==="savestage"){saveStage();}
   else if(a==="cell"){state.modal={type:"cell",pid:el.getAttribute("data-pid"),code:el.getAttribute("data-code"),date:el.getAttribute("data-date")};render();}
   else if(a==="savecell"){saveCell();}
   else if(a==="clearcell"){clearCell();}
+  else if(a==="clearrange"){state.fFrom="";state.fTo="";render();}
   else if(a==="addrev"){state.modal={type:"rev"};render();}
   else if(a==="addsub"){state.modal={type:"sub"};render();}
   else if(a==="saverev"){saveRevSub(true);}
   else if(a==="savesub"){saveRevSub(false);}
   else if(a==="delrev"){delRevSub(true,el.getAttribute("data-sp"));}
   else if(a==="delsub"){delRevSub(false,el.getAttribute("data-sp"));}
-  else if(a==="newproject"){state.draft={id:"",name:"",deadline:iso(30),stages:[{code:"",days:"",resp:""}]};state.modal={type:"newproject"};render();}
-  else if(a==="draft-addstage"){snapshotDraft();state.draft.stages.push({code:"",days:"",resp:""});render();}
-  else if(a==="draft-delstage"){snapshotDraft();state.draft.stages.splice(Number(el.getAttribute("data-i")),1);if(!state.draft.stages.length)state.draft.stages.push({code:"",days:"",resp:""});render();}
+  else if(a==="newproject"){state.draft={id:"",name:"",deadline:iso(30),stages:[{code:"",days:"",due:"",resp:""}]};state.modal={type:"newproject"};render();}
+  else if(a==="draft-addstage"){snapshotDraft();state.draft.stages.push({code:"",days:"",due:"",resp:""});render();}
+  else if(a==="draft-delstage"){snapshotDraft();state.draft.stages.splice(Number(el.getAttribute("data-i")),1);if(!state.draft.stages.length)state.draft.stages.push({code:"",days:"",due:"",resp:""});render();}
   else if(a==="create"){createProject();}
 });
 document.addEventListener("change",function(e){var id=e.target.id,v=e.target.value;
   if(id==="f-pel"){state.pelId=v;render();}
-  else if(id==="f-month"){state.fMonth=v;render();}
+  else if(id==="f-from"){state.fFrom=v;render();}
+  else if(id==="f-to"){state.fTo=v;render();}
   else if(id==="f-user"){state.fUser=v;render();}
 });
 
