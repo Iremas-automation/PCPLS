@@ -647,6 +647,10 @@ function render(){
     app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark" style="background:var(--red)">'+IC.warn+'</div><h1>Nepavyko įkelti</h1><p style="text-align:left">'+esc(state.err||"")+'</p><button class="msbtn" data-act="signout" style="background:var(--blue)">Bandyti iš naujo</button></div></div>';
     return;
   }
+  if(state.phase==="noaccess"){
+    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark" style="background:var(--steel-500)">'+IC.gauge+'</div><h1>Prieiga nesuteikta</h1><p>Jūsų paskyra <code>'+esc(state.meEmail||"")+'</code> nėra registruota sistemoje. Kreipkitės į IT skyrių, kad Jus įtrauktų.</p><button class="msbtn" data-act="signout" style="background:var(--blue)">Atsijungti</button></div></div>';
+    return;
+  }
   var role=myRole(),tabs=myTabs();
   if(!tabs.some(function(t){return t[0]===state.tab;})){state.tab=tabs[0][0];state.view=(state.tab==="projektai"?"list":state.tab);}
   var main= state.view==="detail"?viewDetail(): state.view==="mine"?viewMine(): state.view==="pelningumas"?viewPelningumas(): state.view==="stats"?viewStats(): state.view==="admin"?viewAdmin(): viewList();
@@ -857,8 +861,8 @@ async function loadEverything(){
     ]);
     assemble({darbuotojai:res[0],skyriai:res[1],projektai:res[2],dalys:res[3],priskyrimai:res[4],darboLaikas:res[5],uzduotys:res[6],sutartys:res[7],subrangai:res[8]});
     var me=personByEmail(state.meEmail);
-    if(!me){ PEOPLE.push({name:state.meName||state.meEmail,email:state.meEmail,role:"PROJ",dept:"",rate:230,hue:210}); state.me=state.meName||state.meEmail; state.warn='Tavo paskyros (<code>'+esc(state.meEmail)+'</code>) nėra „Darbuotojai" sąraše — rolė laikinai „Projektuotojas". Įrašyk save į sąrašą su tikra role.'; }
-    else{ state.me=me.name; }
+    if(!me){ state.phase="noaccess"; render(); return; }
+    state.me=me.name;
     if(PROJECTS.length){ state.selId=PROJECTS[0].id; state.pelId=PROJECTS[0].id; }
     state.phase="app"; state.view="list"; state.tab="projektai"; render();
   }catch(e){
