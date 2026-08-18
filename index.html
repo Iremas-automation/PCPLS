@@ -331,7 +331,7 @@ var TAB_LT={projektai:"Projektai",mine:"Mano projektai",pelningumas:"Pelningumas
 var PEOPLE=[], SKYRIAI=[], PROJECTS=[];
 var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             selId:null, pelId:null, me:null, meEmail:null,
-            fFrom:"", fTo:"", fUser:"all", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
+            fFrom:"", fTo:"", fUser:"all", fProj:"all", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
 function personByEmail(e){e=(e||"").toLowerCase();return PEOPLE.find(function(p){return (p.email||"").toLowerCase()===e;});}
@@ -438,7 +438,7 @@ function viewList(){
       '<div class="track"><i class="fill '+barCls(t.spent,t.planned)+'" style="width:'+(Math.min(pct,1)*100)+'%"></i></div></div>'+
       '<div class="mc-act"><span class="mc-open">Atidaryti ›</span></div></div>';
   }).join("");
-  var newBtn=myRole()==="PV"?'<button class="btn primary" data-act="newproject">'+IC.plus+' Naujas projektas</button>':'';
+  var newBtn=(myRole()==="PV"||myRole()==="ADMIN")?'<button class="btn primary" data-act="newproject">'+IC.plus+' Naujas projektas</button>':'';
   var closedToggle=closedN?'<button class="btn sm" data-act="toggleclosed">'+(state.showClosed?"Slėpti uždarytus":("Rodyti uždarytus ("+closedN+")"))+'</button>':'';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Visi projektai</span><h1>Projektai</h1></div>'+
     '<div class="kpis"><div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+closedToggle+newBtn+'</div></div>'+
@@ -517,30 +517,32 @@ function viewPelningumas(){
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Išlaidos — subrangai</span><button class="btn sm" data-act="addsub">'+IC.plus+' Subranga</button></div><div class="gtbl"><div class="gr th rev"><span>Tiekėjas / sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(subRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div><div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
 }
-function filteredRegs(){return state.regs.filter(function(r){var okd=(!state.fFrom||r.date>=state.fFrom)&&(!state.fTo||r.date<=state.fTo);return okd&&(state.fUser==="all"||r.who===state.fUser);});}
+function filteredRegs(){return state.regs.filter(function(r){var okd=(!state.fFrom||r.date>=state.fFrom)&&(!state.fTo||r.date<=state.fTo);return okd&&(state.fUser==="all"||r.who===state.fUser)&&(state.fProj==="all"||r.pid===state.fProj);});}
 function allMonths(){var s={};state.regs.forEach(function(r){if(r.date)s[r.date.slice(0,7)]=1;});return Object.keys(s).sort();}
 function monthShort(k){return LTM[parseInt(k.slice(5,7),10)-1].slice(0,3)+" "+k.slice(2,4);}
 function monthLabel(k){return LTM[parseInt(k.slice(5,7),10)-1]+" "+k.slice(0,4);}
 function chartRow(label,valTxt,frac,cls){return '<div class="crow"><span class="cl">'+esc(label)+'</span><span class="ct"><span class="cf" style="width:'+(Math.max(0,Math.min(frac,1))*100)+'%;background:'+cls+'"></span></span><span class="cnum">'+valTxt+'</span></div>';}
 function viewStats(){
   var STAT=PEOPLE.filter(function(p){return p.inStats;});
-  var FR=filteredRegs(),totalH=FR.reduce(function(a,r){return a+r.hours;},0),users={},projs={};
-  FR.forEach(function(r){users[r.who]=1;if(r.pid)projs[r.pid]=1;});
-  var months=allMonths();
+  var FR=filteredRegs(),totalH=FR.reduce(function(a,r){return a+r.hours;},0);
   var userOpts='<option value="all"'+(state.fUser==="all"?" selected":"")+'>Visi darbuotojai</option>'+STAT.map(function(p){return '<option value="'+esc(p.name)+'"'+(state.fUser===p.name?" selected":"")+'>'+esc(p.name)+'</option>';}).join("");
-  var kpis='<div class="statgrid"><div class="statcard"><div class="v">'+nf(totalH)+'</div><div class="l">Užregistruota val.</div></div><div class="statcard"><div class="v">'+Object.keys(users).length+'</div><div class="l">Darbuotojai</div></div><div class="statcard"><div class="v">'+Object.keys(projs).length+'</div><div class="l">Projektai su įrašais</div></div></div>';
+  var projOpts='<option value="all"'+(state.fProj==="all"?" selected":"")+'>Visi projektai</option>'+PROJECTS.map(function(p){return '<option value="'+esc(p.id)+'"'+(state.fProj===p.id?" selected":"")+'>Nr. '+esc(p.id)+' — '+esc(p.name)+'</option>';}).join("");
+  var kpis='<div class="statgrid" style="max-width:260px"><div class="statcard"><div class="v">'+nf(totalH)+'</div><div class="l">Užregistruota val.</div></div></div>';
   var ppl=STAT.filter(function(p){return state.fUser==="all"||p.name===state.fUser;});
   var hh='<div class="hc head sticky">Darbuotojas</div>';DAYS.forEach(function(d){var dt=new Date(d);hh+='<div class="hc head'+(d===isoD(today)?" today":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});hh+='<div class="hc head tot">Viso</div>';
-  var hr=ppl.map(function(pp){var tot=0;var cells=DAYS.map(function(d){var v=state.regs.reduce(function(a,r){return a+((r.who===pp.name&&r.date===d)?r.hours:0);},0);tot+=v;return '<div class="hc '+loadClass(v)+'">'+(v?nf(v):"")+'</div>';}).join("");var util=Math.round(tot/(DAYS.length*CAP)*100);return '<div class="hc sticky">'+avatar(pp.name)+'<span class="hmname">'+esc(pp.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span><span class="u '+(util>100?"neg":"muted")+'">'+util+'%</span></div>';}).join("");
+  var inFR=function(who,d){return FR.reduce(function(a,r){return a+((r.who===who&&r.date===d)?r.hours:0);},0);};
+  var hr=ppl.map(function(pp){var tot=0;var cells=DAYS.map(function(d){var v=inFR(pp.name,d);tot+=v;return '<div class="hc '+loadClass(v)+'">'+(v?nf(v):"")+'</div>';}).join("");var util=Math.round(tot/(DAYS.length*CAP)*100);return '<div class="hc sticky">'+avatar(pp.name)+'<span class="hmname">'+esc(pp.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span><span class="u '+(util>100?"neg":"muted")+'">'+util+'%</span></div>';}).join("");
   var heat='<div class="panel"><h2>Darbuotojų apkrautumas — paskutinės 10 d. d.</h2><div class="hmwrap" style="border:none"><div class="hmgrid" style="grid-template-columns:210px repeat('+DAYS.length+', 46px) 62px">'+hh+hr+'</div></div></div>';
   var byU={};STAT.forEach(function(p){byU[p.name]=0;});FR.forEach(function(r){if(byU[r.who]!=null)byU[r.who]+=r.hours;});
   var maxU=Math.max.apply(null,Object.keys(byU).map(function(k){return byU[k];}).concat([1]));
   var uc='<div class="panel"><h2>Valandos pagal darbuotoją</h2>'+(ppl.some(function(p){return byU[p.name]>0;})?ppl.map(function(p){return chartRow(p.name,'<b>'+nf(byU[p.name])+'</b> val.',byU[p.name]/maxU,'hsl('+p.hue+' 42% 45%)');}).join(""):'<div class="emptybox">Nėra įrašų.</div>')+'</div>';
+  var anyFilter=state.fFrom||state.fTo||state.fUser!=="all"||state.fProj!=="all";
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+
     '<div class="filters"><div class="fl"><span class="eyebrow">Nuo</span><input class="sel" id="f-from" type="date" value="'+esc(state.fFrom||"")+'"></div>'+
     '<div class="fl"><span class="eyebrow">Iki</span><input class="sel" id="f-to" type="date" value="'+esc(state.fTo||"")+'"></div>'+
+    '<div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-proj">'+projOpts+'</select></div>'+
     '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
-    ((state.fFrom||state.fTo)?'<button class="btn sm" data-act="clearrange" style="margin-bottom:1px">Išvalyti datas</button>':'')+'</div></div>'+kpis+heat+uc+'</div>';
+    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div></div>'+kpis+heat+uc+'</div>';
 }
 function val(id){var e=document.getElementById(id);return e?e.value:"";}
 function tabChips(keys){var ab={projektai:"Proj",mine:"Mano",pelningumas:"Peln",stats:"Stat",admin:"Adm"};return keys.map(function(k){return '<span class="tabchip">'+esc(ab[k]||k)+'</span>';}).join("");}
@@ -771,7 +773,7 @@ document.addEventListener("click",function(e){
   else if(a==="cell"){state.modal={type:"cell",pid:el.getAttribute("data-pid"),code:el.getAttribute("data-code"),date:el.getAttribute("data-date")};render();}
   else if(a==="savecell"){saveCell();}
   else if(a==="clearcell"){clearCell();}
-  else if(a==="clearrange"){state.fFrom="";state.fTo="";render();}
+  else if(a==="clearfilters"){state.fFrom="";state.fTo="";state.fUser="all";state.fProj="all";render();}
   else if(a==="addrev"){state.modal={type:"rev"};render();}
   else if(a==="addsub"){state.modal={type:"sub"};render();}
   else if(a==="saverev"){saveRevSub(true);}
@@ -788,6 +790,7 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
   else if(id==="f-from"){state.fFrom=v;render();}
   else if(id==="f-to"){state.fTo=v;render();}
   else if(id==="f-user"){state.fUser=v;render();}
+  else if(id==="f-proj"){state.fProj=v;render();}
 });
 
 /* =========================== BOOT / AUTH =========================== */
