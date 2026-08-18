@@ -289,6 +289,7 @@ var MS=86400000, CAP=8;
 var today=new Date(); today.setHours(0,0,0,0);
 function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
 function pad2(n){return (n<10?"0":"")+n;}
+function numOr(v,def){if(v===null||v===undefined||v==="")return def;var n=Number(v);return isNaN(n)?def:n;}
 function isoD(d){var x=new Date(d);return x.getFullYear()+"-"+pad2(x.getMonth()+1)+"-"+pad2(x.getDate());}
 function iso(off){return isoD(addDays(today,off));}
 function dOnly(s){return s?String(s).slice(0,10):"";}
@@ -348,14 +349,14 @@ function canAdmin(){return myTabKeys().indexOf("admin")>=0;}
 function assemble(raw){
   PEOPLE = raw.darbuotojai.map(function(f,i){
     return { name:F(f,"Vardas"), email:(f.ElPastas||"").toLowerCase(), role:roleKey(f.Role), roleRaw:f.Role||"",
-             dept:f.Skyrius||"", rate:Number(f.DienosIkainis)||230,
+             dept:f.Skyrius||"", rate:numOr(f.DienosIkainis,230),
              tabs:String(f.Skiltys||"").split(",").map(function(s){return s.trim();}).filter(Boolean),
              inStats:(function(){var s=String(f.Statistikoje||"").toLowerCase();return s?(s.indexOf("taip")>=0||s==="1"||s==="true"||s==="yes"):(roleKey(f.Role)!=="ADMIN");})(),
              inProjects:(function(){var s=String(f.Projektuose||"").toLowerCase();return s?(s.indexOf("taip")>=0||s==="1"||s==="true"||s==="yes"):(roleKey(f.Role)!=="ADMIN");})(),
              hue:(i*47+200)%360, spId:f.__id };
   });
   SKYRIAI = raw.skyriai.map(function(f){
-    return { code:F(f,"Kodas"), name:f.Pavadinimas||F(f,"Kodas"), head:(f.VadovoElPastas||"").toLowerCase(), rate:Number(f.DienosIkainis)||230, spId:f.__id };
+    return { code:F(f,"Kodas"), name:f.Pavadinimas||F(f,"Kodas"), head:(f.VadovoElPastas||"").toLowerCase(), rate:numOr(f.DienosIkainis,230), spId:f.__id };
   });
   var dalysBy={}, tasksBy={}, revBy={}, subBy={}, prisBy={};
   raw.dalys.forEach(function(f){ var pn=F(f,"ProjektoNr"); (dalysBy[pn]=dalysBy[pn]||[]).push(f); });
@@ -551,13 +552,13 @@ function viewAdmin(){
       '<span class="mono muted" style="font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.email||"—")+'</span>'+
       '<span style="font-size:12.5px">'+esc(ROLE_LT[p.role]||p.role)+(p.inStats===false?' <span class="muted" style="font-size:10px">· ne stat.</span>':'')+(p.inProjects===false?' <span class="muted" style="font-size:10px">· ne proj.</span>':'')+'</span>'+
       '<span style="font-size:12.5px">'+esc(p.dept||"—")+'</span>'+
-      '<span class="r mono">'+(p.rate?(p.rate+" €"):"—")+'</span>'+
+      '<span class="r mono">'+(p.rate!=null?(p.rate+" €"):"—")+'</span>'+
       '<span class="tabchips">'+tabChips(tabs)+'</span>'+
       '<span class="r" style="gap:8px"><span class="stg-edit" data-act="editemp" data-sp="'+esc(p.spId||"")+'" title="Redaguoti">'+IC.edit+'</span><span class="tk-del" data-act="delemp" data-sp="'+esc(p.spId||"")+'" title="Šalinti">'+IC.trash+'</span></span></div>';
   }).join("");
   var teamRows=SKYRIAI.map(function(s){
     var head=s.head?((personByEmail(s.head)||{}).name||s.head):"—";
-    return '<div class="gr row team2"><span class="mono" style="font-weight:700">'+esc(s.code)+'</span><span style="font-weight:600">'+esc(s.name)+'</span><span class="muted" style="font-size:12px">'+esc(head)+'</span><span class="r mono">'+(s.rate?(s.rate+" €"):"—")+'</span><span class="r"><span class="stg-edit" data-act="editteam" data-sp="'+esc(s.spId||"")+'" title="Redaguoti">'+IC.edit+'</span></span></div>';
+    return '<div class="gr row team2"><span class="mono" style="font-weight:700">'+esc(s.code)+'</span><span style="font-weight:600">'+esc(s.name)+'</span><span class="muted" style="font-size:12px">'+esc(head)+'</span><span class="r mono">'+(s.rate!=null?(s.rate+" €"):"—")+'</span><span class="r"><span class="stg-edit" data-act="editteam" data-sp="'+esc(s.spId||"")+'" title="Redaguoti">'+IC.edit+'</span></span></div>';
   }).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Sistemos valdymas</span><h1>Administravimas</h1></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Darbuotojai — '+PEOPLE.length+'</span><button class="btn sm" data-act="addemp">'+IC.plus+' Naujas darbuotojas</button></div>'+
@@ -585,7 +586,7 @@ function viewModal(){
      '<label class="field"><span class="eyebrow">El. paštas (UPN)</span><input class="inp" id="em-email" value="'+esc(p.email||"")+'" placeholder="NPavarde@projektucentras.lt"></label>'+
      '<div class="two"><label class="field"><span class="eyebrow">Rolė</span><select class="sel" id="em-role">'+roleOpts+'</select></label>'+
      '<label class="field"><span class="eyebrow">Skyrius</span><select class="sel" id="em-dept">'+deptOpts+'</select></label></div>'+
-     '<label class="field"><span class="eyebrow">Dienos įkainis, €</span><input class="inp" id="em-rate" type="number" min="0" value="'+esc(p.rate||230)+'"></label>'+
+     '<label class="field"><span class="eyebrow">Dienos įkainis, €</span><input class="inp" id="em-rate" type="number" min="0" value="'+esc(p.rate!=null?p.rate:230)+'"></label>'+
      '<div class="field"><span class="eyebrow">Matomos skiltys (tuščia = pagal rolę)</span><div class="chkgrid">'+tabChecks+'</div></div>'+
      '<label class="chk" style="margin-bottom:8px"><input type="checkbox" id="em-stat"'+((p.inStats!==false)?" checked":"")+'> Rodyti statistikoje</label>'+
      '<label class="chk" style="margin-bottom:16px"><input type="checkbox" id="em-proj"'+((p.inProjects!==false)?" checked":"")+'> Galima priskirti projektuose</label>'+
@@ -594,7 +595,7 @@ function viewModal(){
     var headOpts='<option value="">— nėra —</option>'+PEOPLE.filter(function(pp){return pp.inProjects||pp.email===s.head;}).map(function(pp){return '<option value="'+esc(pp.email)+'"'+(s.head===pp.email?" selected":"")+'>'+esc(pp.name)+'</option>';}).join("");
     inner='<div class="form"><h3>'+(isNew?"Nauja komanda":"Redaguoti komandą")+'</h3>'+
      '<div class="two"><label class="field"><span class="eyebrow">Kodas</span><input class="inp" id="tm-code" value="'+esc(s.code||"")+'"'+(isNew?"":" readonly")+'></label>'+
-     '<label class="field"><span class="eyebrow">Įkainis, €</span><input class="inp" id="tm-rate" type="number" min="0" value="'+esc(s.rate||230)+'"></label></div>'+
+     '<label class="field"><span class="eyebrow">Įkainis, €</span><input class="inp" id="tm-rate" type="number" min="0" value="'+esc(s.rate!=null?s.rate:230)+'"></label></div>'+
      '<label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="tm-name" value="'+esc(s.name||"")+'"></label>'+
      '<label class="field"><span class="eyebrow">Vadovas (SV)</span><select class="sel" id="tm-head">'+headOpts+'</select></label>'+
      '<button class="btn primary wide" data-act="saveteam" data-sp="'+esc(m.sp||"")+'">Išsaugoti</button></div>';
@@ -687,7 +688,7 @@ async function toggleTaskDone(sp){var p,tk;PROJECTS.forEach(function(pp){(pp.tas
   await withSave(async function(){ await patchItem(L.uzduotys,tk.spId,{Atlikta:nv?"Taip":""}); tk.done=nv; });
 }
 async function saveEmp(sp){
-  var name=val("em-name").trim(),email=val("em-email").trim().toLowerCase(),roleRaw=val("em-role"),dept=val("em-dept"),rate=Number(val("em-rate"))||230;
+  var name=val("em-name").trim(),email=val("em-email").trim().toLowerCase(),roleRaw=val("em-role"),dept=val("em-dept"),rate=numOr(val("em-rate"),230);
   var tabs=[].slice.call(document.querySelectorAll(".tabchk")).filter(function(c){return c.checked;}).map(function(c){return c.value;});
   var se=document.getElementById("em-stat"),inStats=se?se.checked:true;
   var pe2=document.getElementById("em-proj"),inProjects=pe2?pe2.checked:true;
@@ -702,7 +703,7 @@ async function delEmp(sp){var p=PEOPLE.find(function(x){return String(x.spId)===
   await withSave(async function(){ if(sp)await delItem(L.darbuotojai,sp); PEOPLE=PEOPLE.filter(function(x){return String(x.spId)!==String(sp);}); });
 }
 async function saveTeam(sp){
-  var code=val("tm-code").trim(),name=val("tm-name").trim(),head=val("tm-head"),rate=Number(val("tm-rate"))||230;
+  var code=val("tm-code").trim(),name=val("tm-name").trim(),head=val("tm-head"),rate=numOr(val("tm-rate"),230);
   if(!code){alert("Įvesk kodą.");return;} state.modal=null;
   var fields={Title:code,Kodas:code,Pavadinimas:name,VadovoElPastas:head,DienosIkainis:rate};
   await withSave(async function(){
