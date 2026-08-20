@@ -662,6 +662,7 @@ function render(){
     '<div class="me">'+avatar(state.me)+'<div class="who"><div class="nm">'+esc(state.me)+'</div><div class="rolechip">'+esc(ROLE_LT[role])+'</div></div><button class="signout" data-act="signout">Atsijungti</button></div></header>'+
     warnBanner+'<main class="body">'+main+'</main>'+viewModal()+
     (state.saving?'<div class="saving">Išsaugoma…</div>':'');
+  if(state.modal&&state.modal.type==="cell"){var cf=document.getElementById("cell-h");if(cf){cf.focus();try{cf.select();}catch(e){}}}
 }
 
 /* =========================== SAVE HELPERS (SharePoint REST) =========================== */
@@ -829,6 +830,9 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
   else if(id==="f-to"){state.fTo=v;render();}
   else if(id==="f-user"){state.fUser=v;render();}
   else if(id==="f-proj"){state.fProj=v;render();}
+});
+document.addEventListener("keydown",function(e){
+  if(e.key==="Enter"&&e.target&&e.target.id==="cell-h"){e.preventDefault();saveCell();}
 });
 
 /* =========================== BOOT / AUTH =========================== */
