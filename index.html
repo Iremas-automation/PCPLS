@@ -238,8 +238,10 @@ async function spReq(path, opts){
   if(opts.body!=null){ h["Content-Type"]="application/json;odata=verbose"; body=JSON.stringify(opts.body); }
   var res=await fetch(url,{method:opts.method||"GET", headers:h, body:body});
   if(!res.ok){ var t=await res.text(); var m=res.status; try{ m=JSON.parse(t).error.message.value||res.status; }catch(e){} throw new Error("SharePoint "+res.status+" — "+m); }
-  if(res.status===204) return null;
-  var j=await res.json(); return j.d;
+  if(res.status===204||res.status===205) return null;
+  var txt=await res.text();
+  if(!txt) return null;                       // 200 su tuščiu kūnu (DELETE/MERGE) — ne klaida
+  try{ var j=JSON.parse(txt); return j.d!==undefined?j.d:j; }catch(e){ return null; }
 }
 function spGet(path){ return spReq(path); }
 
