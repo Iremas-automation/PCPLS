@@ -124,6 +124,10 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .pgh .pgh-car{font-size:10px;color:var(--steel-500);width:10px;}
 .pgh .cnt{color:var(--steel-500);font-weight:600;font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 8px;}
 .pgh.tone-red{border-left-color:var(--red);}.pgh.tone-amber{border-left-color:#C98A1A;}.pgh.tone-green{border-left-color:var(--green);}.pgh.tone-blue{border-left-color:var(--blue);}.pgh.tone-grey{border-left-color:var(--steel-400);}
+.warnbar{padding:10px 14px;border-radius:8px;font-size:12.5px;font-weight:600;margin-top:10px;}
+.warnbar.red{background:rgba(192,58,43,.1);color:var(--red);border:1px solid rgba(192,58,43,.3);}
+.warnbar.amber{background:rgba(201,138,26,.12);color:#8a5f12;border:1px solid rgba(201,138,26,.32);}
+.warnbar.green{background:rgba(46,139,87,.09);color:var(--green);border:1px solid rgba(46,139,87,.28);}
 .dsum{grid-template-columns:minmax(140px,2fr) 140px 100px 100px 100px;}
 .dsum-tot{background:#F5F7F8;}
 .dsum-tot:hover{background:#F5F7F8;}
@@ -455,6 +459,10 @@ function stageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((
 function stagePlanned(s){return (s.soldDays||0)*CAP;}
 function stageCost(p,s){return state.regs.reduce(function(a,r){return a+((r.pid===p.id&&r.code===s.code)?(r.hours/CAP)*rateOf(r.who):0);},0);}
 function totals(p){var pl=0,sp=0;p.stages.forEach(function(s){pl+=stagePlanned(s);sp+=stageSpent(p.id,s.code);});return {planned:pl,spent:sp,left:pl-sp};}
+function workdaysUntil(dstr){ if(!dstr)return null; var end=new Date(dstr); if(isNaN(end))return null; if(isoD(end)<isoD(today))return 0; var n=0,d=addDays(today,1); while(isoD(d)<=isoD(end)){ var w=d.getDay(); if(w!==0&&w!==6)n++; d=addDays(d,1);} return n; }
+/* projektas rizikuoja: bent vienai daliai liko daugiau darbo (d.) nei darbo dienų iki jos termino */
+function projectRisk(p){ if(p.status==="closed"||!p.deadline)return false;
+  return (p.stages||[]).some(function(s){ var rem=(stagePlanned(s)-stageSpent(p.id,s.code))/CAP; if(rem<=0)return false; var wd=workdaysUntil(s.deadline||p.deadline); return wd!==null&&rem>wd; }); }
 function deptSummary(){
   var map={},mStart=new Date(today.getFullYear(),today.getMonth(),1),mEnd=new Date(today.getFullYear(),today.getMonth()+1,1);
   PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){
@@ -471,7 +479,17 @@ function deptSummaryTable(){
   var tot={month:0,sold:0,worked:0};rows.forEach(function(r){tot.month+=r.month;tot.sold+=r.sold;tot.worked+=r.worked;});
   var body=rows.map(function(r){var lik=r.sold-r.worked;return '<div class="gr row dsum"><span style="font-weight:600;font-size:12.5px">'+esc(r.name||r.code)+'</span><span class="r mono">'+nfD(r.month)+' d.</span><span class="r mono">'+nfD(r.sold)+' d.</span><span class="r mono">'+nfD(r.worked)+' d.</span><span class="r mono '+(lik<0?"neg":"")+'">'+nfD(lik)+' d.</span></div>';}).join("");
   body+='<div class="gr row dsum dsum-tot"><span style="font-weight:700;font-size:12.5px">Iš viso</span><span class="r mono">'+nfD(tot.month)+' d.</span><span class="r mono">'+nfD(tot.sold)+' d.</span><span class="r mono">'+nfD(tot.worked)+' d.</span><span class="r mono '+((tot.sold-tot.worked)<0?"neg":"")+'">'+nfD(tot.sold-tot.worked)+' d.</span></div>';
-  return '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių apkrova — parduota darbo</span></div><div class="ptblwrap"><div class="gtbl" style="border:none"><div class="gr th dsum"><span>Skyrius</span><span class="r">Terminas šį mėn.</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Liko</span></div>'+body+'</div></div></div>';
+  var nPeople=PEOPLE.filter(function(p){return p.inProjects;}).length;
+  var wdMonth=monthWorkdays(0).length;
+  var capH=nPeople*wdMonth*CAP;
+  var capPct=capH?tot.month/capH:0;
+  var capTone=capPct>1?"red":capPct>=0.85?"amber":"green";
+  var capMsg=capPct>1?("⚠ Šį mėn. parduota "+nfD(tot.month)+" d., o skyrių pajėgumas tik "+nfD(capH)+" d. ("+nPeople+" darb. × "+wdMonth+" d. d.) — pajėgumas viršytas.")
+    :capPct>=0.85?("⚠ Beveik pilna: šį mėn. parduota "+nfD(tot.month)+" d. iš "+nfD(capH)+" d. pajėgumo ("+Math.round(capPct*100)+"%).")
+    :("Pajėgumas šį mėn.: parduota "+nfD(tot.month)+" d. iš "+nfD(capH)+" d. ("+nPeople+" darb. × "+wdMonth+" d. d., "+Math.round(capPct*100)+"%).");
+  var atRisk=PROJECTS.filter(function(p){return projectRisk(p);});
+  var riskMsg=atRisk.length?('<div class="warnbar red">⚠ '+atRisk.length+' projekt'+(atRisk.length===1?"as":"ai")+' gali nespėti iki termino (liko daugiau darbo nei laiko): '+atRisk.map(function(p){return "Nr. "+esc(p.id);}).join(", ")+'</div>'):'';
+  return '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių apkrova — parduota darbo</span></div><div class="ptblwrap"><div class="gtbl" style="border:none"><div class="gr th dsum"><span>Skyrius</span><span class="r">Terminas šį mėn.</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Liko</span></div>'+body+'</div></div><div class="warnbar '+capTone+'">'+capMsg+'</div>'+riskMsg+'</div>';
 }
 function profit(p){var rev=(p.revenue||[]).reduce(function(a,r){return a+(r.sum||0);},0);var sub=(p.subrangai||[]).reduce(function(a,r){return a+(r.sum||0);},0);var emp=p.stages.reduce(function(a,s){return a+stageCost(p,s);},0);return {rev:rev,sub:sub,emp:emp,profit:rev-sub-emp};}
 function deadlineChip(p){if(p.status==="closed")return {tone:"grey",txt:"uždarytas"};if(!p.deadline)return {tone:"grey",txt:"—"};var d=daysBetween(today,p.deadline);var tone=d<0?"red":d<=7?"amber":"green";var txt=d<0?(Math.abs(d)+" d. pradelsta"):d===0?"šiandien":("liko "+d+" d.");return {tone:tone,txt:txt};}
@@ -530,7 +548,7 @@ function viewList(){
       '<span class="nr">'+esc(p.id)+'</span>'+
       '<span class="pname">'+esc(p.name)+(resp.length?'<span class="avarow sm">'+resp.map(avatar).join("")+'</span>':'')+'</span>'+
       '<span class="who"><span style="font-size:12.5px">'+esc(pmName(p))+'</span></span>'+
-      '<span><span class="pill '+st.tone+'">'+st.txt+'</span></span>'+
+      '<span><span class="pill '+st.tone+'">'+st.txt+'</span>'+(projectRisk(p)?' <span class="pill red" title="Liko daugiau darbo nei darbo dienų iki termino">⚠</span>':'')+'</span>'+
       '<span style="font-size:12.5px">'+fmtLT(p.deadline)+'</span>'+
       '<span class="pprog"><span class="track"><i class="fill '+barCls(t.spent,t.planned)+'" style="width:'+(pct*100)+'%"></i></span><small class="mono">'+nfD(t.spent)+'/'+nfD(t.planned)+'</small><small class="mono '+(over?"neg":"muted")+'">liko '+nfD(t.left)+'</small></span>'+
       '<span class="r"><span class="mc-open">›</span></span></div>';
@@ -547,7 +565,7 @@ function viewList(){
   var groupBtn='<button class="btn sm" data-act="togglesort">Grupuoti: '+(state.sortBy==="pv"?"pagal PV":"pagal terminą")+'</button>';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Visi projektai</span><h1>Projektai</h1></div>'+
     '<div class="kpis"><div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+groupBtn+closedToggle+newBtn+'</div></div>'+
-    deptSummaryTable()+table+'</div>';
+    table+deptSummaryTable()+'</div>';
 }
 function viewDetail(){
   var p=selProject();if(!p)return viewList();
@@ -695,7 +713,7 @@ function viewStats(){
     '<div class="fl"><span class="eyebrow">Iki</span><input class="sel" id="f-to" type="date" value="'+esc(state.fTo||"")+'"></div>'+
     '<div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-proj">'+projOpts+'</select></div>'+
     '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
-    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div></div>'+kpis+deptSummaryTable()+heat+uc+'</div>';
+    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div></div>'+kpis+heat+uc+deptSummaryTable()+'</div>';
 }
 function val(id){var e=document.getElementById(id);return e?e.value:"";}
 function tabChips(keys){var ab={projektai:"Proj",mine:"Mano",pelningumas:"Peln",stats:"Stat",admin:"Adm"};return keys.map(function(k){return '<span class="tabchip">'+esc(ab[k]||k)+'</span>';}).join("");}
