@@ -124,6 +124,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .pgh .pgh-car{font-size:10px;color:var(--steel-500);width:10px;}
 .pgh .cnt{color:var(--steel-500);font-weight:600;font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 8px;}
 .pgh.tone-red{border-left-color:var(--red);}.pgh.tone-amber{border-left-color:#C98A1A;}.pgh.tone-green{border-left-color:var(--green);}.pgh.tone-blue{border-left-color:var(--blue);}.pgh.tone-grey{border-left-color:var(--steel-400);}
+.svwt .prowh,.svwt .prow{grid-template-columns:minmax(120px,1.3fr) 128px 90px 90px minmax(200px,2.2fr);}
+.svwrow{cursor:default;}.svwrow:hover{background:transparent;}
+.svw-asg{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .pill{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;color:#fff;}
 .pill.red{background:var(--red);}.pill.amber{background:#C98A1A;}.pill.green{background:var(--green);}.pill.blue{background:var(--blue);}.pill.grey{background:var(--steel-400);}
 .monthnav{display:flex;align-items:center;gap:8px;margin-left:auto;}.monthnav .mlabel{font-size:13px;font-weight:700;color:var(--steel-700);text-transform:capitalize;min-width:120px;text-align:center;}
@@ -168,7 +171,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .pcard.profit{border-color:rgba(46,139,87,.4);background:rgba(46,139,87,.05);}.pcard.profit .pv{color:var(--green);}
 .pcard.loss{border-color:rgba(192,58,43,.4);background:rgba(192,58,43,.05);}.pcard.loss .pv{color:var(--red);}
 .pcard .psub{font-size:11px;color:var(--steel-500);margin-top:4px;}
-.hmwrap{overflow-x:auto;border:1px solid var(--line);border-radius:7px;background:var(--panel);}
+.hmwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);}
 .hmgrid{display:grid;min-width:max-content;}
 .hc{border-right:1px solid #EEF1F3;border-bottom:1px solid #EEF1F3;padding:0 4px;height:44px;display:flex;align-items:center;justify-content:center;font-size:12px;}
 .hc.sticky{position:sticky;left:0;z-index:2;justify-content:flex-start;gap:9px;padding-left:12px;background:var(--panel);border-right:1px solid var(--line);}
@@ -183,11 +186,11 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .legend{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap;font-size:11.5px;color:var(--steel-500);}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px;}
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
-.statcard{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:14px 16px;}
+.statcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
 .statcard.warn{border-color:rgba(192,58,43,.35);background:rgba(192,58,43,.04);}
 .statcard .v{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--blue-deep);}.statcard.warn .v{color:var(--red);}
 .statcard .l{font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--steel-500);font-weight:600;margin-top:3px;}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:18px;margin-bottom:18px;}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;margin-bottom:18px;}
 .panel h2{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--steel-500);margin:0 0 14px;font-weight:700;}
 .crow{display:grid;grid-template-columns:200px 1fr 96px;gap:12px;align-items:center;margin-bottom:9px;}
 .crow .cl{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -610,15 +613,21 @@ function viewSvWork(){
   var parts=[];
   PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){if(codes.indexOf(s.code)>=0)parts.push({pr:pr,s:s});});});
   parts.sort(function(a,b){return new Date((a.s.deadline||a.pr.deadline||"2100"))-new Date((b.s.deadline||b.pr.deadline||"2100"));});
-  var partRows=parts.map(function(x){
-    var pr=x.pr,s=x.s;
-    var planH=stagePlanned(s),distH=(s.pris||[]).reduce(function(a,p){return a+(p.hours||0);},0);
-    var dd=s.deadline||pr.deadline; var dch=dd?(function(){var n=daysBetween(today,dd);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'">iki '+fmtLT(dd)+'</span>';})():'';
-    var chips=(s.pris||[]).length?(s.pris.map(function(p){return '<span class="asg" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'" data-email="'+esc(p.email)+'" title="Keisti valandas">'+avatar(p.name)+'<span>'+esc(p.name)+'</span><b>'+nfD(p.hours)+' d.</b><span class="asg-x" data-act="unassign" data-sp="'+esc(p.spId||"")+'" title="Pašalinti">×</span></span>';}).join("")):'<span class="muted" style="font-size:12px">dar nepaskirta</span>';
-    var distTone=distH>planH?"neg":"";
-    return '<div class="svpart"><div class="svp-top"><div><span class="gh-nr">Nr. '+esc(pr.id)+'</span> <b>'+esc(pr.name)+'</b> <span class="muted">· '+esc(s.name)+'</span></div><div class="svp-meta">'+dch+'<span class="muted" style="font-size:12px">parduota '+nfD(planH)+' d. · paskirta <b class="'+distTone+'">'+nfD(distH)+' d.</b></span></div></div>'+
-      '<div class="svp-assignees">'+chips+'<button class="btn sm" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'">'+IC.plus+' Priskirti</button></div></div>';
-  }).join("");
+  var byP={},order=[];
+  parts.forEach(function(x){if(!byP[x.pr.id]){byP[x.pr.id]=[];order.push(x.pr);}byP[x.pr.id].push(x.s);});
+  order.sort(function(a,b){return new Date(a.deadline||"2100")-new Date(b.deadline||"2100");});
+  var svColHead='<div class="prowh"><span>Dalis</span><span>Terminas</span><span class="r">Parduota</span><span class="r">Paskirta</span><span>Atsakingi</span></div>';
+  var partsTable=order.length?('<div class="ptblwrap"><div class="ptbl svwt">'+svColHead+order.map(function(pr){
+    var col=!!state.collapsed["svp:"+pr.id]; var st=statusOf(pr);
+    var hdr='<div class="pgh tone-'+st.tone+'" data-act="togglegroup" data-g="svp:'+esc(pr.id)+'"><span class="pgh-car">'+(col?"▸":"▾")+'</span><span class="pgh-lab"><span class="gh-nr">Nr. '+esc(pr.id)+'</span> '+esc(pr.name)+'</span><span class="pill '+st.tone+'">'+st.txt+'</span><span class="cnt">'+byP[pr.id].length+'</span></div>';
+    var rows=col?'':byP[pr.id].map(function(s){
+      var planH=stagePlanned(s),distH=(s.pris||[]).reduce(function(a,p){return a+(p.hours||0);},0);
+      var dch=s.deadline?(function(){var n=daysBetween(today,s.deadline);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'">iki '+fmtLT(s.deadline)+'</span>';})():'<span class="muted" style="font-size:12px">—</span>';
+      var chips=(s.pris||[]).length?(s.pris.map(function(p){return '<span class="asg" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'" data-email="'+esc(p.email)+'" title="Keisti valandas">'+avatar(p.name)+'<span>'+esc(p.name)+'</span><b>'+nfD(p.hours)+' d.</b><span class="asg-x" data-act="unassign" data-sp="'+esc(p.spId||"")+'" title="Pašalinti">×</span></span>';}).join("")):'<span class="muted" style="font-size:12px">dar nepaskirta</span>';
+      return '<div class="prow svwrow"><span style="font-weight:600">'+esc(s.name)+'</span><span>'+dch+'</span><span class="r mono">'+nfD(planH)+' d.</span><span class="r mono '+(distH>planH?"neg":"")+'">'+nfD(distH)+' d.</span><span class="svw-asg">'+chips+'<button class="btn sm" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'">'+IC.plus+' Priskirti</button></span></div>';
+    }).join("");
+    return hdr+rows;
+  }).join("")+'</div></div>'):'<div class="empty">Jūsų skyriui šiuo metu nėra priskirtų projektų dalių.</div>';
   // 2) pavaldinių užimtumas
   var subs=deptSubordinates(codes);
   var subRows=subs.map(function(sub){
@@ -633,7 +642,7 @@ function viewSvWork(){
       '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span></div>';
   }).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyrius: '+esc(deptNames)+'</span><h1>Skyriaus darbai</h1></div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+(partRows||'<div class="empty">Jūsų skyriui šiuo metu nėra priskirtų projektų dalių.</div>')+'</div>'+
+    '<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>'+
     '<div class="section" style="margin-top:22px"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span></div>'+(subRows||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div></div>';
 }
 function viewStats(){
