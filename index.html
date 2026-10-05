@@ -104,7 +104,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .tk-done-btn:hover{color:var(--green);border-color:rgba(46,139,87,.4);}
 .task.done{opacity:.62;}.task.done .tk-txt{text-decoration:line-through;}
 .task.done .tk-done-btn{background:rgba(46,139,87,.14);color:var(--green);border-color:rgba(46,139,87,.4);}
-.grouphdr{grid-column:1/-1;display:flex;align-items:center;gap:8px;background:#EAEFF3;border-bottom:1px solid var(--line);border-top:2px solid var(--steel-300);padding:8px 12px;font-size:12px;font-weight:700;color:var(--steel-700);position:sticky;left:0;}
+.grouphdr{grid-column:1/-1;display:flex;align-items:center;gap:8px;background:#EEF2F5;border-bottom:1px solid var(--line);border-top:1px solid var(--line);border-left:4px solid var(--blue);padding:8px 12px 8px 10px;font-size:12px;font-weight:700;color:var(--steel-700);position:sticky;left:0;}
 .grouphdr .gh-nr{font-family:var(--mono);color:#fff;background:var(--blue);padding:2px 7px;border-radius:4px;font-size:11px;}
 .ghliko{margin-left:10px;font-size:11px;font-weight:700;color:var(--steel-600);}.ghliko.neg{color:var(--red);}
 .ptblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);}
@@ -151,11 +151,12 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .chkgrid{display:flex;flex-direction:column;gap:7px;}
 .chk{display:flex;align-items:center;gap:9px;font-size:13px;cursor:pointer;}
 .chk input{width:16px;height:16px;flex:none;}
-.gtbl{border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--panel);}
+.gtbl{border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel);}
 .gr{display:grid;gap:12px;align-items:center;padding:0 14px;}
-.gr.th{height:36px;background:#F5F7F8;border-bottom:1px solid var(--line);}
-.gr.th span{font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--steel-500);}
-.gr.row{border-top:1px solid var(--line);min-height:46px;}.gtbl>.gr.row:first-of-type{border-top:none;}
+.gr.th{min-height:36px;padding-top:9px;padding-bottom:9px;background:#F5F7F8;border-bottom:1px solid var(--line);}
+.gr.th span{font-size:10px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--steel-500);}
+.gr.row{border-top:1px solid var(--line);min-height:46px;transition:background .08s;}.gtbl>.gr.row:first-of-type{border-top:none;}
+.gr.row:hover{background:#F6F8FA;}
 .gr .r{text-align:right;justify-content:flex-end;display:flex;align-items:center;gap:5px;}
 .gr .who{display:flex;align-items:center;gap:8px;font-size:12.5px;}.gr .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .stg{grid-template-columns:minmax(160px,2fr) 150px 88px 84px 82px minmax(110px,1fr);}
@@ -665,7 +666,7 @@ function viewAdmin(){
     var tabs=(p.tabs&&p.tabs.length)?p.tabs:defaultTabsForRole(p.role);
     return '<div class="gr row adm"><span class="who">'+avatar(p.name)+'<span style="font-weight:600">'+esc(p.name)+'</span></span>'+
       '<span class="mono muted" style="font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.email||"—")+'</span>'+
-      '<span style="font-size:12.5px">'+esc(ROLE_LT[p.role]||p.role)+(p.inStats===false?' <span class="muted" style="font-size:10px">· ne stat.</span>':'')+(p.inProjects===false?' <span class="muted" style="font-size:10px">· ne proj.</span>':'')+'</span>'+
+      '<span><span class="pill '+(p.role==="ADMIN"?"blue":p.role==="PV"?"green":p.role==="SV"?"amber":"grey")+'">'+esc(ROLE_LT[p.role]||p.role)+'</span>'+(p.inStats===false?'<span class="muted" style="font-size:10px"> · ne stat.</span>':'')+(p.inProjects===false?'<span class="muted" style="font-size:10px"> · ne proj.</span>':'')+'</span>'+
       '<span style="font-size:12.5px">'+esc(p.dept||"—")+'</span>'+
       '<span class="r mono">'+(p.rate!=null?(p.rate+" €"):"—")+'</span>'+
       '<span class="tabchips">'+tabChips(tabs)+'</span>'+
@@ -677,9 +678,9 @@ function viewAdmin(){
   }).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Sistemos valdymas</span><h1>Administravimas</h1></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Darbuotojai — '+PEOPLE.length+'</span><button class="btn sm" data-act="addemp">'+IC.plus+' Naujas darbuotojas</button></div>'+
-    '<div class="hmwrap"><div class="gtbl" style="min-width:770px;border-radius:0"><div class="gr th adm"><span>Vardas</span><span>El. paštas (UPN)</span><span>Rolė</span><span>Skyrius</span><span class="r">Įkainis</span><span>Skiltys</span><span></span></div>'+(empRows||'<div class="empty">Nėra.</div>')+'</div></div></div>'+
+    '<div class="hmwrap"><div class="gtbl" style="min-width:770px"><div class="gr th adm"><span>Vardas</span><span>El. paštas (UPN)</span><span>Rolė</span><span>Skyrius</span><span class="r">Įkainis</span><span>Skiltys</span><span></span></div>'+(empRows||'<div class="empty">Nėra.</div>')+'</div></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyriai — '+SKYRIAI.length+'</span><button class="btn sm" data-act="addteam">'+IC.plus+' Naujas skyrius</button></div>'+
-    '<div class="hmwrap"><div class="gtbl" style="min-width:560px;border-radius:0"><div class="gr th team2"><span>Kodas</span><span>Pavadinimas</span><span>Vadovas</span><span class="r">Įkainis</span><span></span></div>'+(teamRows||'<div class="empty">Nėra.</div>')+'</div></div></div>'+
+    '<div class="hmwrap"><div class="gtbl" style="min-width:560px"><div class="gr th team2"><span>Kodas</span><span>Pavadinimas</span><span>Vadovas</span><span class="r">Įkainis</span><span></span></div>'+(teamRows||'<div class="empty">Nėra.</div>')+'</div></div></div>'+
     '<div class="legend"><span>„Skiltys" nustato, kurias korteles vartotojas mato. Tuščia = pagal rolę.</span></div></div>';
 }
 function viewModal(){
