@@ -124,6 +124,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .pgh .pgh-car{font-size:10px;color:var(--steel-500);width:10px;}
 .pgh .cnt{color:var(--steel-500);font-weight:600;font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 8px;}
 .pgh.tone-red{border-left-color:var(--red);}.pgh.tone-amber{border-left-color:#C98A1A;}.pgh.tone-green{border-left-color:var(--green);}.pgh.tone-blue{border-left-color:var(--blue);}.pgh.tone-grey{border-left-color:var(--steel-400);}
+.dsum{grid-template-columns:minmax(140px,2fr) 140px 100px 100px 100px;}
+.dsum-tot{background:#F5F7F8;}
+.dsum-tot:hover{background:#F5F7F8;}
 .svwt .prowh,.svwt .prow{grid-template-columns:minmax(120px,1.3fr) 128px 90px 90px minmax(200px,2.2fr);}
 .svwrow{cursor:default;}.svwrow:hover{background:transparent;}
 .svw-asg{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
@@ -256,12 +259,21 @@ var msalApp = new msal.PublicClientApplication({
   cache:{ cacheLocation:"localStorage" }
 });
 var account=null;
+var authBusy=false;      // true kol vyksta interaktyvus MSAL veiksmas (popup/redirect)
+var _tokPromise=null;    // vienu metu tik VIENAS tokeno gavimas (kad nebūtų interaction_in_progress)
 var IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 async function spToken(){
-  var req={scopes:SP_SCOPES, account:account};
-  try{ return (await msalApp.acquireTokenSilent(req)).accessToken; }
-  catch(e){ if(IS_MOBILE){ await msalApp.acquireTokenRedirect(req); throw new Error("Nukreipiama į prisijungimą — bandykite dar kartą."); } return (await msalApp.acquireTokenPopup(req)).accessToken; }
+  if(_tokPromise) return _tokPromise;            // jei jau vyksta — laukiam to paties, nekuriam naujo
+  _tokPromise=(async function(){
+    var req={scopes:SP_SCOPES, account:account||msalApp.getActiveAccount()};
+    try{ return (await msalApp.acquireTokenSilent(req)).accessToken; }
+    catch(e){
+      if(IS_MOBILE){ await msalApp.acquireTokenRedirect(req); throw new Error("Nukreipiama į prisijungimą — bandykite dar kartą."); }
+      return (await msalApp.acquireTokenPopup(req)).accessToken;
+    }
+  })();
+  try{ return await _tokPromise; } finally{ _tokPromise=null; }
 }
 /* žemo lygio SharePoint REST kvietimas (odata=verbose) */
 async function spReq(path, opts){
@@ -443,6 +455,24 @@ function stageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((
 function stagePlanned(s){return (s.soldDays||0)*CAP;}
 function stageCost(p,s){return state.regs.reduce(function(a,r){return a+((r.pid===p.id&&r.code===s.code)?(r.hours/CAP)*rateOf(r.who):0);},0);}
 function totals(p){var pl=0,sp=0;p.stages.forEach(function(s){pl+=stagePlanned(s);sp+=stageSpent(p.id,s.code);});return {planned:pl,spent:sp,left:pl-sp};}
+function deptSummary(){
+  var map={},mStart=new Date(today.getFullYear(),today.getMonth(),1),mEnd=new Date(today.getFullYear(),today.getMonth()+1,1);
+  PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){
+    (p.stages||[]).forEach(function(s){
+      var m=map[s.code]||(map[s.code]={code:s.code,name:skyriusName(s.code),sold:0,worked:0,month:0});
+      var h=stagePlanned(s); m.sold+=h; m.worked+=stageSpent(p.id,s.code);
+      var dd=s.deadline||p.deadline; if(dd){var dt=new Date(dd); if(dt>=mStart&&dt<mEnd)m.month+=h;}
+    });
+  });
+  return Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.sold-a.sold;});
+}
+function deptSummaryTable(){
+  var rows=deptSummary(); if(!rows.length)return '';
+  var tot={month:0,sold:0,worked:0};rows.forEach(function(r){tot.month+=r.month;tot.sold+=r.sold;tot.worked+=r.worked;});
+  var body=rows.map(function(r){var lik=r.sold-r.worked;return '<div class="gr row dsum"><span style="font-weight:600;font-size:12.5px">'+esc(r.name||r.code)+'</span><span class="r mono">'+nfD(r.month)+' d.</span><span class="r mono">'+nfD(r.sold)+' d.</span><span class="r mono">'+nfD(r.worked)+' d.</span><span class="r mono '+(lik<0?"neg":"")+'">'+nfD(lik)+' d.</span></div>';}).join("");
+  body+='<div class="gr row dsum dsum-tot"><span style="font-weight:700;font-size:12.5px">Iš viso</span><span class="r mono">'+nfD(tot.month)+' d.</span><span class="r mono">'+nfD(tot.sold)+' d.</span><span class="r mono">'+nfD(tot.worked)+' d.</span><span class="r mono '+((tot.sold-tot.worked)<0?"neg":"")+'">'+nfD(tot.sold-tot.worked)+' d.</span></div>';
+  return '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių apkrova — parduota darbo</span></div><div class="ptblwrap"><div class="gtbl" style="border:none"><div class="gr th dsum"><span>Skyrius</span><span class="r">Terminas šį mėn.</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Liko</span></div>'+body+'</div></div></div>';
+}
 function profit(p){var rev=(p.revenue||[]).reduce(function(a,r){return a+(r.sum||0);},0);var sub=(p.subrangai||[]).reduce(function(a,r){return a+(r.sum||0);},0);var emp=p.stages.reduce(function(a,s){return a+stageCost(p,s);},0);return {rev:rev,sub:sub,emp:emp,profit:rev-sub-emp};}
 function deadlineChip(p){if(p.status==="closed")return {tone:"grey",txt:"uždarytas"};if(!p.deadline)return {tone:"grey",txt:"—"};var d=daysBetween(today,p.deadline);var tone=d<0?"red":d<=7?"amber":"green";var txt=d<0?(Math.abs(d)+" d. pradelsta"):d===0?"šiandien":("liko "+d+" d.");return {tone:tone,txt:txt};}
 function barCls(sp,pl){return sp>pl?"over":(pl&&sp>=pl?"done":"wip");}
@@ -517,7 +547,7 @@ function viewList(){
   var groupBtn='<button class="btn sm" data-act="togglesort">Grupuoti: '+(state.sortBy==="pv"?"pagal PV":"pagal terminą")+'</button>';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Visi projektai</span><h1>Projektai</h1></div>'+
     '<div class="kpis"><div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+groupBtn+closedToggle+newBtn+'</div></div>'+
-    table+'</div>';
+    deptSummaryTable()+table+'</div>';
 }
 function viewDetail(){
   var p=selProject();if(!p)return viewList();
@@ -641,7 +671,7 @@ function viewSvWork(){
       '<span class="r mono">'+nP+'</span><span>'+ndch+'</span>'+
       '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span></div>';
   }).join("");
-  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyrius: '+esc(deptNames)+'</span><h1>Skyriaus darbai</h1></div></div>'+
+  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>'+
     '<div class="section" style="margin-top:22px"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span></div>'+(subRows||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div></div>';
 }
@@ -665,7 +695,7 @@ function viewStats(){
     '<div class="fl"><span class="eyebrow">Iki</span><input class="sel" id="f-to" type="date" value="'+esc(state.fTo||"")+'"></div>'+
     '<div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-proj">'+projOpts+'</select></div>'+
     '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
-    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div></div>'+kpis+heat+uc+'</div>';
+    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div></div>'+kpis+deptSummaryTable()+heat+uc+'</div>';
 }
 function val(id){var e=document.getElementById(id);return e?e.value:"";}
 function tabChips(keys){var ab={projektai:"Proj",mine:"Mano",pelningumas:"Peln",stats:"Stat",admin:"Adm"};return keys.map(function(k){return '<span class="tabchip">'+esc(ab[k]||k)+'</span>';}).join("");}
@@ -1017,16 +1047,19 @@ document.addEventListener("keydown",function(e){
 
 /* =========================== BOOT / AUTH =========================== */
 async function doLogin(){
+  if(authBusy) return;                 // jau vyksta prisijungimas — nekartojam
+  authBusy=true;
   var request={scopes:LOGIN_SCOPES};
-  if(IS_MOBILE){ try{ await msalApp.loginRedirect(request); }catch(e){ state.err="Prisijungti nepavyko: "+e.message; render(); } return; }
   try{
+    if(IS_MOBILE){ await msalApp.loginRedirect(request); return; }
     var resp=await msalApp.loginPopup(request);
     account=resp.account; msalApp.setActiveAccount(account);
     await afterLogin();
   }catch(e){
     if(["block_nested_popups","popup_window_error","empty_window_error"].indexOf(e.errorCode)>=0){ try{ await msalApp.loginRedirect(request); }catch(e2){ state.err="Prisijungti nepavyko: "+e2.message; render(); } }
+    else if(e.errorCode==="interaction_in_progress"){ state.err="Prisijungimas jau vykdomas. Palaukite kelias sekundes arba perkraukite puslapį (F5) ir bandykite dar kartą."; render(); }
     else if(e.errorCode!=="user_cancelled"){ state.err="Prisijungti nepavyko: "+e.message; render(); }
-  }
+  }finally{ authBusy=false; }
 }
 async function afterLogin(){
   state.meEmail=(account.username||"").toLowerCase();
