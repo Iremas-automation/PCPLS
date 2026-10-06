@@ -595,7 +595,7 @@ function viewList(){
   var groupBtn='<button class="btn sm" data-act="togglesort">Grupuoti: '+(state.sortBy==="pv"?"pagal PV":"pagal terminą")+'</button>';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Visi projektai</span><h1>Projektai</h1></div>'+
     '<div class="kpis"><div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+groupBtn+closedToggle+newBtn+'</div></div>'+
-    table+deptSummaryTable()+'</div>';
+    table+'</div>';
 }
 function viewDetail(){
   var p=selProject();if(!p)return viewList();
