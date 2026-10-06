@@ -135,6 +135,11 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .hc.abs-A{background:#3E7CB1;}.hc.abs-L{background:#C0533F;}.hc.abs-K{background:#7A5AA6;}
 .abs-chip{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:4px;color:#fff;font-size:10px;font-weight:800;margin-right:4px;}
 .abs-chip.abs-A{background:#3E7CB1;}.abs-chip.abs-L{background:#C0533F;}.abs-chip.abs-K{background:#7A5AA6;}
+.statseg{display:inline-flex;gap:0;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:16px;flex-wrap:wrap;}
+.segbtn{padding:9px 16px;font-size:13px;font-weight:600;background:var(--panel);color:var(--steel-600);border:none;border-right:1px solid var(--line);cursor:pointer;}
+.segbtn:last-child{border-right:none;}
+.segbtn:hover{background:#F6F8FA;}
+.segbtn.on{background:var(--blue);color:#fff;}
 .warnbar{padding:10px 14px;border-radius:8px;font-size:12.5px;font-weight:600;margin-top:10px;}
 .warnbar.red{background:rgba(192,58,43,.1);color:var(--red);border:1px solid rgba(192,58,43,.3);}
 .warnbar.amber{background:rgba(201,138,26,.12);color:#8a5f12;border:1px solid rgba(201,138,26,.32);}
@@ -405,7 +410,7 @@ var TAB_LT={projektai:"Projektai",mine:"Mano projektai",svwork:"Skyriaus darbai"
 var PEOPLE=[], SKYRIAI=[], PROJECTS=[];
 var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             selId:null, pelId:null, me:null, meEmail:null,
-            fFrom:"", fTo:"", fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, collapsed:{}, showClosed:false, modal:null, draft:null, saving:false, regs:[] };
+            fFrom:"", fTo:"", fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, collapsed:{}, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
 function pmName(p){var pe=personByEmail(p.pm);return pe?pe.name:(p.pm||"—");}
@@ -730,12 +735,16 @@ function viewStats(){
   var maxU=Math.max.apply(null,Object.keys(byU).map(function(k){return byU[k];}).concat([1]));
   var uc='<div class="panel"><h2>Valandos pagal darbuotoją</h2>'+(ppl.some(function(p){return byU[p.name]>0;})?ppl.map(function(p){return chartRow(p.name,'<b>'+nf(byU[p.name])+'</b> val.',byU[p.name]/maxU,'hsl('+p.hue+' 42% 45%)');}).join(""):'<div class="emptybox">Nėra įrašų.</div>')+'</div>';
   var anyFilter=state.fFrom||state.fTo||state.fUser!=="all"||state.fProj!=="all";
-  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+
-    '<div class="filters"><div class="fl"><span class="eyebrow">Nuo</span><input class="sel" id="f-from" type="date" value="'+esc(state.fFrom||"")+'"></div>'+
+  var sv=state.statView||"load";
+  var segs=[["load","Darbuotojų apkrautumas"],["byuser","Valandos pagal darbuotoją"],["dept","Skyrių apkrova"]];
+  var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(sv===s[0]?" on":"")+'" data-act="statview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
+  var filterBar=(sv!=="dept")?('<div class="filters"><div class="fl"><span class="eyebrow">Nuo</span><input class="sel" id="f-from" type="date" value="'+esc(state.fFrom||"")+'"></div>'+
     '<div class="fl"><span class="eyebrow">Iki</span><input class="sel" id="f-to" type="date" value="'+esc(state.fTo||"")+'"></div>'+
     '<div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-proj">'+projOpts+'</select></div>'+
     '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
-    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div></div>'+kpis+heat+uc+deptSummaryTable()+'</div>';
+    (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div>'):'';
+  var body=sv==="load"?(kpis+heat):sv==="byuser"?(kpis+uc):deptSummaryTable();
+  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+filterBar+'</div>'+seg+body+'</div>';
 }
 function val(id){var e=document.getElementById(id);return e?e.value:"";}
 function tabChips(keys){var ab={projektai:"Proj",mine:"Mano",pelningumas:"Peln",stats:"Stat",admin:"Adm"};return keys.map(function(k){return '<span class="tabchip">'+esc(ab[k]||k)+'</span>';}).join("");}
@@ -1057,6 +1066,7 @@ document.addEventListener("click",function(e){
   else if(a==="delproject"){deleteProject();}
   else if(a==="togglesort"){state.sortBy=(state.sortBy==="pv"?"deadline":"pv");render();}
   else if(a==="togglegroup"){var gk=el.getAttribute("data-g");state.collapsed[gk]=!state.collapsed[gk];render();}
+  else if(a==="statview"){state.statView=el.getAttribute("data-v");render();}
   else if(a==="tsprev"){state.tsOff--;render();}
   else if(a==="tsnext"){state.tsOff++;render();}
   else if(a==="tsnow"){state.tsOff=0;render();}
