@@ -109,7 +109,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .ghliko{margin-left:10px;font-size:11px;font-weight:700;color:var(--steel-600);}.ghliko.neg{color:var(--red);}
 .ptblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);}
 .ptbl{min-width:860px;}
-.prowh,.prow{display:grid;grid-template-columns:70px minmax(180px,2fr) minmax(130px,1.2fr) 118px 100px minmax(170px,1.5fr) 34px;align-items:center;}
+.prowh,.prow{display:grid;grid-template-columns:70px minmax(180px,2fr) minmax(130px,1.2fr) 150px 100px minmax(170px,1.5fr) 34px;align-items:center;}
+.statcell{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.warnmark{display:inline-grid;place-items:center;width:19px;height:19px;border-radius:50%;background:var(--red);color:#fff;font-size:10px;font-weight:700;flex:none;}
 .prowh{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--steel-500);font-weight:700;border-bottom:1px solid var(--line);}
 .prowh>span{padding:9px 12px;}
 .prow{border-bottom:1px solid var(--line);cursor:pointer;transition:background .08s;}
@@ -575,7 +577,7 @@ function viewList(){
       '<span class="nr">'+esc(p.id)+'</span>'+
       '<span class="pname">'+esc(p.name)+(resp.length?'<span class="avarow sm">'+resp.map(avatar).join("")+'</span>':'')+'</span>'+
       '<span class="who"><span style="font-size:12.5px">'+esc(pmName(p))+'</span></span>'+
-      '<span><span class="pill '+st.tone+'">'+st.txt+'</span>'+(projectRisk(p)?' <span class="pill red" title="Liko daugiau darbo nei darbo dienų iki termino">⚠</span>':'')+'</span>'+
+      '<span class="statcell"><span class="pill '+st.tone+'">'+st.txt+'</span>'+(projectRisk(p)?'<span class="warnmark" title="Liko daugiau darbo nei darbo dienų iki termino">⚠</span>':'')+'</span>'+
       '<span style="font-size:12.5px">'+fmtLT(p.deadline)+'</span>'+
       '<span class="pprog"><span class="track"><i class="fill '+barCls(t.spent,t.planned)+'" style="width:'+(pct*100)+'%"></i></span><small class="mono">'+nfD(t.spent)+'/'+nfD(t.planned)+'</small><small class="mono '+(over?"neg":"muted")+'">liko '+nfD(t.left)+'</small></span>'+
       '<span class="r"><span class="mc-open">›</span></span></div>';
