@@ -641,8 +641,10 @@ function viewMine(){
     var lch='<span class="ghliko'+(lk<0?" neg":"")+'">liko '+nfD(lk)+' d.</span>';
     var hdr='<div class="grouphdr"><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+dch+lch+'</div>';
     var body=byProj[p.id].map(function(it){
-      var tot=0;var cells=MD.map(function(d){var ab=myAbsence(d);var dcls=dlCellCls(it.p.deadline,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(dcls==="dl-day"?' title="Projekto terminas — '+fmtLT(it.p.deadline)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
-      return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
+      var pdl=it.s.deadline||it.p.deadline;
+      var tot=0;var cells=MD.map(function(d){var ab=myAbsence(d);var dcls=dlCellCls(pdl,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(dcls==="dl-day"?' title="Dalies terminas — '+fmtLT(pdl)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
+      var rowDch=it.s.deadline?(function(){var n=daysBetween(today,it.s.deadline);return ' <span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'" style="font-size:9.5px">iki '+fmtLT(it.s.deadline)+'</span>';})():'';
+      return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+rowDch+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
     }).join("");
     return hdr+body;
   }).join("");
