@@ -199,7 +199,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .hmwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);}
 .hmgrid{display:grid;min-width:max-content;}
 .hc{border-right:1px solid #EEF1F3;border-bottom:1px solid #EEF1F3;padding:0 4px;height:44px;display:flex;align-items:center;justify-content:center;font-size:12px;}
-.hc.sticky{position:sticky;left:0;z-index:2;justify-content:flex-start;gap:9px;padding-left:12px;background:var(--panel);border-right:1px solid var(--line);}
+.hc.sticky{position:sticky;left:0;z-index:2;justify-content:flex-start;gap:9px;padding:6px 10px 6px 12px;background:var(--panel);border-right:1px solid var(--line);}
 .hc.head{background:#F5F7F8;font-weight:700;color:var(--steel-500);font-size:10px;text-transform:uppercase;letter-spacing:.04em;flex-direction:column;gap:1px;}
 .hc.head.sticky{z-index:3;}.hc .wd{font-size:9px;}.hc .dn{font-size:12px;color:var(--ink);}
 .hc.today{box-shadow:inset 0 -3px 0 var(--blue);}
@@ -211,7 +211,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .hc.dl-day{background:#E7897B;color:#5c1b12;font-weight:800;}
 .hc.abs.dl-day{box-shadow:inset 0 0 0 2px #5c1b12;}
 .hc.abs.dl-soon{box-shadow:inset 0 0 0 2px #7a5410;}
-.hmname{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hmname{font-size:12.5px;font-weight:600;white-space:normal;line-height:1.5;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;}
 .legend{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap;font-size:11.5px;color:var(--steel-500);}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px;}
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
@@ -415,8 +415,10 @@ var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             fFrom:"", fTo:"", fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, collapsed:{}, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
-function pmName(p){var pe=personByEmail(p.pm);return pe?pe.name:(p.pm||"—");}
 function personByEmail(e){e=(e||"").toLowerCase();return PEOPLE.find(function(p){return (p.email||"").toLowerCase()===e;});}
+function prettyEmail(e){e=(e||"").split("@")[0];if(!e)return "—";return e.split(/[._\-]+/).filter(Boolean).map(function(w){return w.charAt(0).toUpperCase()+w.slice(1);}).join(" ");}
+function nameOf(email){var pe=personByEmail(email);return pe?pe.name:(email?prettyEmail(email):"—");}
+function pmName(p){return nameOf(p.pm);}
 function hueOf(n){var p=person(n);return p?p.hue:210;}
 function rateOf(n){var p=person(n);return p?p.rate:230;}
 function roleOf(n){var p=person(n);return p?p.role:"PROJ";}
@@ -650,7 +652,7 @@ function viewMine(){
     }).join("");
     return hdr+body;
   }).join("");
-  var grid=items.length?'<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:230px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>':'<div class="empty">Jums šiuo metu nepriskirta jokių darbų (žr. „Priskyrimai" sąrašą).</div>';
+  var grid=items.length?'<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:300px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>':'<div class="empty">Jums šiuo metu nepriskirta jokių darbų (žr. „Priskyrimai" sąrašą).</div>';
   var monthNav='<div class="monthnav"><button class="btn sm" data-act="tsprev">‹</button><span class="mlabel">'+esc(monthLabelOf(state.tsOff))+'</span><button class="btn sm" data-act="tsnext">›</button>'+(state.tsOff!==0?'<button class="btn sm" data-act="tsnow">Šis mėnuo</button>':'')+'</div>';
   var myTasks=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){(p.tasks||[]).forEach(function(tk){if(tk.assignee&&tk.assignee===state.meEmail)myTasks.push({p:p,tk:tk});});});
   myTasks.sort(function(a,b){return (a.tk.done?1:0)-(b.tk.done?1:0)||new Date(a.tk.due||"2100")-new Date(b.tk.due||"2100");});
@@ -774,7 +776,7 @@ function viewAdmin(){
       '<span class="r" style="gap:8px"><span class="stg-edit" data-act="editemp" data-sp="'+esc(p.spId||"")+'" title="Redaguoti">'+IC.edit+'</span><span class="tk-del" data-act="delemp" data-sp="'+esc(p.spId||"")+'" title="Šalinti">'+IC.trash+'</span></span></div>';
   }).join("");
   var teamRows=SKYRIAI.map(function(s){
-    var head=s.head?((personByEmail(s.head)||{}).name||s.head):"—";
+    var head=s.head?nameOf(s.head):"—";
     return '<div class="gr row team2"><span class="mono" style="font-weight:700">'+esc(s.code)+'</span><span style="font-weight:600">'+esc(s.name)+'</span><span class="muted" style="font-size:12px">'+esc(head)+'</span><span class="r mono">'+(s.rate!=null?(s.rate+" €"):"—")+'</span><span class="r"><span class="stg-edit" data-act="editteam" data-sp="'+esc(s.spId||"")+'" title="Redaguoti">'+IC.edit+'</span></span></div>';
   }).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Sistemos valdymas</span><h1>Administravimas</h1></div></div>'+
