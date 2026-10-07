@@ -188,7 +188,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gr .r{text-align:right;justify-content:flex-end;display:flex;align-items:center;gap:5px;}
 .gr .who{display:flex;align-items:center;gap:8px;font-size:12.5px;}.gr .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .stg{grid-template-columns:minmax(160px,2fr) 150px 88px 84px 82px minmax(110px,1fr);}
-.rev{grid-template-columns:1fr 100px 120px 36px;}.disc{grid-template-columns:minmax(150px,2fr) 110px 110px 110px;}
+.rev{grid-template-columns:1fr 100px 120px 36px;}.disc{grid-template-columns:minmax(150px,2fr) 100px 100px 100px 110px;}
 .psum{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
 .pcard{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:15px 18px;}
 .pcard .pl{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--steel-500);font-weight:700;margin-bottom:6px;}
@@ -715,9 +715,10 @@ function viewPelningumas(){
   var p=projById(state.pelId);var pr=profit(p);
   var revRows=(p.revenue||[]).map(function(r){return '<div class="gr row rev"><span>'+esc(r.title)+'</span><span class="mono muted">'+fmtLT(r.date)+'</span><span class="r mono">'+eur(r.sum)+'</span><span class="tk-del" data-act="delrev" data-sp="'+esc(r.spId||"")+'">'+IC.trash+'</span></div>';}).join("");
   var subRows=(p.subrangai||[]).map(function(r){var pc=r.code?'<span class="pill grey" style="margin-left:6px;font-size:10px;padding:2px 8px">'+esc(skyriusName(r.code))+'</span>':"";return '<div class="gr row rev"><span>'+esc(r.title)+pc+'</span><span class="mono muted">'+fmtLT(r.date)+'</span><span class="r mono">'+eur(r.sum)+'</span><span class="tk-del" data-act="delsub" data-sp="'+esc(r.spId||"")+'">'+IC.trash+'</span></div>';}).join("");
-  var discRows=p.stages.map(function(s){var c=stageCost(p,s),base=soldSum(p,s),subS=stageSubSum(p,s.code),sp=soldPriceEff(p,s),lik=sp!=null?sp-c:null;
-    var sold='<span class="r mono">'+(sp!=null?eur(sp):"—")+(subS>0&&base!=null?'<span class="muted" style="display:block;font-size:11px">('+eur(base)+' − '+eur(subS)+' subr.)</span>':"")+'</span>';
-    return '<div class="gr row disc"><span style="font-weight:600;font-size:12.5px">'+esc(s.name)+'</span>'+sold+'<span class="r mono">'+eur(c)+'</span><span class="r mono '+(lik!=null?(lik<0?"neg":"pos"):"")+'">'+(lik!=null?eur(lik):"—")+'</span></div>';}).join("");
+  var discRows=p.stages.map(function(s){var c=stageCost(p,s),base=soldSum(p,s),subS=s.subSum||0,lik=base!=null?base-subS-c:null;
+    var soldCell='<span class="r mono">'+(base!=null?eur(base):"—")+'</span>';
+    var subCell='<span class="r mono '+(subS>0?"neg":"muted")+'">'+(subS>0?"−"+eur(subS):"—")+'</span>';
+    return '<div class="gr row disc"><span style="font-weight:600;font-size:12.5px">'+esc(s.name)+'</span>'+soldCell+subCell+'<span class="r mono">'+eur(c)+'</span><span class="r mono '+(lik!=null?(lik<0?"neg":"pos"):"")+'">'+(lik!=null?eur(lik):"—")+'</span></div>';}).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Vadovams</span><h1>Pelningumas</h1></div>'+
     '<div class="filters"><div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-pel">'+opts+'</select></div></div></div>'+
     '<div class="psum"><div class="pcard"><div class="pl">Pajamos (sutartys)</div><div class="pv">'+eur(pr.rev)+'</div></div>'+
@@ -726,7 +727,7 @@ function viewPelningumas(){
     '<div class="pcard '+(pr.profit>=0?"profit":"loss")+'"><div class="pl">Pelnas / nuostolis</div><div class="pv">'+eur(pr.profit)+'</div><div class="psub">pajamos − subrangai − darbuotojai</div></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Pajamos — sutartys</span><button class="btn sm" data-act="addrev">'+IC.plus+' Sutartis / papildymas</button></div><div class="gtbl"><div class="gr th rev"><span>Sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(revRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Išlaidos — subrangai</span><button class="btn sm" data-act="addsub">'+IC.plus+' Subranga</button></div><div class="gtbl"><div class="gr th rev"><span>Tiekėjas / sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(subRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div><div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
+    '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div><div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Subrangai</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
 }
 function filteredRegs(){return state.regs.filter(function(r){var okd=(!state.fFrom||r.date>=state.fFrom)&&(!state.fTo||r.date<=state.fTo);return okd&&(state.fUser==="all"||r.who===state.fUser)&&(state.fProj==="all"||r.pid===state.fProj);});}
 function allMonths(){var s={};state.regs.forEach(function(r){if(r.date)s[r.date.slice(0,7)]=1;});return Object.keys(s).sort();}
