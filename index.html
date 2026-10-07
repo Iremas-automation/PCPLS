@@ -480,6 +480,11 @@ function assemble(raw){
     if(seen[k]) continue; seen[k]=1; state.regs.unshift(r); }
   state.absences=(raw.nebuvimai||[]).map(function(f){return {email:(F(f,"DarbuotojoElPastas")||"").toLowerCase(),date:dOnly(f.Data),type:(f.Tipas||"").trim().toUpperCase().slice(0,1),spId:f.__id};}).filter(function(a){return a.email&&a.date&&a.type;});
   absMap={}; state.absences.forEach(function(a){absMap[a.email+"|"+a.date]=a;});
+  // daliai priskirtos subrangos: paskaičiuojam, kiek € ir kiek dienų atimti iš dalies parduoto biudžeto
+  PROJECTS.forEach(function(p){(p.stages||[]).forEach(function(s){
+    var ss=(p.subrangai||[]).reduce(function(a,r){return a+((r.code&&r.code===s.code)?(r.sum||0):0);},0);
+    s.subSum=ss; s.subDays=(s.rate>0?ss/s.rate:0);
+  });});
 }
 var absMap={};
 var ABS_LT={A:"Atostogos",L:"Liga / nedarbingumas",K:"Komandiruotė"};
@@ -488,16 +493,19 @@ function myAbsence(date){return absenceOf(state.meEmail,date);}
 
 /* ---------------- skaičiavimai ---------------- */
 function stageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((r.pid===pid&&r.code===code)?r.hours:0);},0);}
-function stagePlanned(s){return (s.soldDays||0)*CAP;}
+/* planuojamos dienos (val.) = parduotos dienos − daliai priskirtos subrangos dienos */
+function stagePlanned(s){var d=(s.soldDays||0)-(s.subDays||0);return (d>0?d:0)*CAP;}
 function stageCost(p,s){return state.regs.reduce(function(a,r){return a+((r.pid===p.id&&r.code===s.code)?(r.hours/CAP)*rateOf(r.who):0);},0);}
 function totals(p){var pl=0,sp=0;p.stages.forEach(function(s){pl+=stagePlanned(s);sp+=stageSpent(p.id,s.code);});return {planned:pl,spent:sp,left:pl-sp};}
 /* subrangos, priskirtos konkrečiai daliai (pagal SkyriausKodas), suma € */
-function stageSubSum(p,code){return (p.subrangai||[]).reduce(function(a,r){return a+((r.code&&r.code===code)?(r.sum||0):0);},0);}
+function stageSubSum(p,code){var st=(p.stages||[]).find(function(s){return s.code===code;});if(st&&st.subSum!=null)return st.subSum;return (p.subrangai||[]).reduce(function(a,r){return a+((r.code&&r.code===code)?(r.sum||0):0);},0);}
 /* dalies bendra parduota suma: tiesiogiai įrašyta suma, arba (dienų režime) dienos × įkainis */
 function soldSum(p,s){if(s.soldPrice!=null)return s.soldPrice;var d=s.soldDays||0;return d>0?d*(s.rate||0):null;}
 /* dalies parduotas biudžetas sumažinamas subrangos suma (daliai priskirta subranga) */
-function soldPriceEff(p,s){var base=soldSum(p,s);if(base==null)return null;var r=base-stageSubSum(p,s.code);return r<0?0:r;}
-function soldDaysEff(p,s){var d=s.soldDays||0;var rate=s.rate||230;var sub=stageSubSum(p,s.code);var dd=d-(rate>0?sub/rate:0);return dd<0?0:dd;}
+function soldPriceEff(p,s){var base=soldSum(p,s);if(base==null)return null;var r=base-(s.subSum||0);return r<0?0:r;}
+function soldDaysEff(p,s){var dd=(s.soldDays||0)-(s.subDays||0);return dd<0?0:dd;}
+/* perskaičiuoja dalims priskirtų subrangų sumas/dienas (po pridėjimo/šalinimo be perkrovimo) */
+function recalcStageSub(p){(p.stages||[]).forEach(function(s){var ss=(p.subrangai||[]).reduce(function(a,r){return a+((r.code&&r.code===s.code)?(r.sum||0):0);},0);s.subSum=ss;s.subDays=(s.rate>0?ss/s.rate:0);});}
 function workdaysUntil(dstr){ if(!dstr)return null; var end=new Date(dstr); if(isNaN(end))return null; if(isoD(end)<isoD(today))return 0; var n=0,d=addDays(today,1); while(isoD(d)<=isoD(end)){ var w=d.getDay(); if(w!==0&&w!==6)n++; d=addDays(d,1);} return n; }
 /* projektas rizikuoja: bent vienai daliai liko daugiau darbo (d.) nei darbo dienų iki jos termino */
 function projectRisk(p){ if(p.status==="closed"||!p.deadline)return false;
@@ -1049,11 +1057,11 @@ async function delTask(sp){var p=selProject();state.modal=null;await withSave(as
 async function saveRevSub(isRev){var t=document.getElementById("rv-title").value.trim(),date=document.getElementById("rv-date").value,sum=Number(document.getElementById("rv-sum").value)||0;var code=isRev?"":((document.getElementById("rv-code")||{}).value||"").trim();if(!t){alert("Įvesk pavadinimą.");return;}var p=projById(state.pelId);state.modal=null;
   await withSave(async function(){
     if(isRev){var res=await addItem(L.sutartys,{Title:p.id,ProjektoNr:p.id,Sutartis:t,Data:date||null,SumaBePVM:sum});p.revenue.push({title:t,date:dOnly(date),sum:sum,spId:res.id});}
-    else{var r2=await addItem(L.subrangai,{Title:p.id,ProjektoNr:p.id,Tiekejas:t,Data:date||null,SumaBePVM:sum,SkyriausKodas:code||null});p.subrangai.push({title:t,date:dOnly(date),sum:sum,code:code||null,spId:r2.id});}
+    else{var r2=await addItem(L.subrangai,{Title:p.id,ProjektoNr:p.id,Tiekejas:t,Data:date||null,SumaBePVM:sum,SkyriausKodas:code||null});p.subrangai.push({title:t,date:dOnly(date),sum:sum,code:code||null,spId:r2.id});recalcStageSub(p);}
   });
 }
 async function delRevSub(isRev,sp){var p=projById(state.pelId);
-  await withSave(async function(){if(isRev){if(sp)await delItem(L.sutartys,sp);p.revenue=p.revenue.filter(function(r){return String(r.spId)!==String(sp);});}else{if(sp)await delItem(L.subrangai,sp);p.subrangai=p.subrangai.filter(function(r){return String(r.spId)!==String(sp);});}});
+  await withSave(async function(){if(isRev){if(sp)await delItem(L.sutartys,sp);p.revenue=p.revenue.filter(function(r){return String(r.spId)!==String(sp);});}else{if(sp)await delItem(L.subrangai,sp);p.subrangai=p.subrangai.filter(function(r){return String(r.spId)!==String(sp);});recalcStageSub(p);}});
 }
 async function setStatus(st){var p=selProject();await withSave(async function(){await patchItem(L.projektai,p.spId,{Busena:st==="closed"?"Uždarytas":"Aktyvus"});p.status=st;});}
 async function deleteProject(){var p=selProject();if(!p||myRole()!=="ADMIN")return;
