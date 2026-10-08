@@ -652,7 +652,7 @@ function viewList(){
   var colHead='<div class="prowh"><span>Nr.</span><span>Projektas</span><span>Projekto vadovas</span><span>Būsena</span><span>Terminas</span><span>Eiga (sugaišta / planas, d.)</span><span></span></div>';
   function rowHtml(p){
     var t=totals(p),over=t.left<0,pct=t.planned?Math.min(t.spent/t.planned,1):0,st=statusOf(p);
-    var resp=[];p.stages.forEach(function(s){if(s.resp&&resp.indexOf(s.resp)<0)resp.push(s.resp);});
+    var resp=[];p.stages.forEach(function(s){(s.pris||[]).forEach(function(pr){if(pr.name&&resp.indexOf(pr.name)<0)resp.push(pr.name);});});
     return '<div class="prow" data-act="open" data-id="'+esc(p.id)+'">'+
       '<span class="nr">'+esc(p.id)+'</span>'+
       '<span class="pname">'+esc(p.name)+(resp.length?'<span class="avarow sm">'+resp.map(avatar).join("")+'</span>':'')+'</span>'+
@@ -687,8 +687,11 @@ function viewDetail(){
     var pl=stagePlanned(s),sp=stageSpent(p.id,s.code),left=pl-sp,o=left<0,pc=pl?sp/pl:0;
     var dch=s.deadline?(function(){var dd=daysBetween(today,s.deadline);var tn=dd<0?"red":dd<=7?"amber":"green";return ' <span class="dl dl-'+tn+'" style="margin-left:6px">iki '+fmtLT(s.deadline)+'</span>';})():'';
     var subTag=s.sub?' <span class="pill grey" style="font-size:9px;padding:1px 6px">SUBRANGA</span>':'';
+    var who=(s.pris&&s.pris.length)
+      ? s.pris.map(function(pr){return avatar(pr.name);}).join("")+'<span style="margin-left:5px">'+esc(s.pris.map(function(pr){return pr.name;}).join(", "))+'</span>'
+      : '<span class="muted">'+(s.sub?"subranga":isSvc(s.code)?"paslauga":"skyriui")+'</span>';
     return '<div class="gr row stg"><span style="font-weight:600;font-size:13px">'+esc(s.name)+subTag+dch+'</span>'+
-      '<span class="who">'+(s.resp?avatar(s.resp)+'<span>'+esc(s.resp)+'</span>':'<span class="muted">'+(s.sub?"subranga":isSvc(s.code)?"paslauga":"skyriui")+'</span>')+(pm?'<span class="stg-edit" data-act="editstage" data-code="'+esc(s.code)+'" title="Redaguoti">'+IC.edit+'</span>':'')+'</span>'+
+      '<span class="who">'+who+(pm?'<span class="stg-edit" data-act="editstage" data-code="'+esc(s.code)+'" title="Redaguoti">'+IC.edit+'</span>':'')+'</span>'+
       '<span class="r mono">'+nfD(pl)+'</span><span class="r mono">'+nfD(sp)+'</span><span class="r mono '+(o?"neg":"")+'">'+nfD(left)+'</span>'+
       '<span class="r" style="justify-content:flex-start"><span class="track" style="width:100%"><i class="fill '+barCls(sp,pl)+'" style="width:'+(Math.min(pc,1)*100)+'%"></i></span></span></div>';
   }
