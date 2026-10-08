@@ -547,6 +547,11 @@ function myStages(){var seen={};return PROJECTS.filter(function(p){return p.stat
 function myDayHours(pid,code,date){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code&&r.date===date)?r.hours:0);},0);}
 function personOptions(sel){return PEOPLE.filter(function(p){return p.inProjects||p.name===sel;}).map(function(p){return '<option value="'+esc(p.name)+'"'+(p.name===sel?" selected":"")+'>'+esc(p.name)+'</option>';}).join("");}
 function skyriusOptions(sel){return '<option value="">— pasirink dalį —</option>'+SKYRIAI.map(function(s){return '<option value="'+esc(s.code)+'"'+(s.code===sel?" selected":"")+'>'+esc(s.code)+' — '+esc(s.name)+'</option>';}).join("");}
+/* PV pasirinkimas: PV ir Admin rolės žmonės (value=el. paštas); visada įtraukiamas pažymėtasis */
+function pmOptions(selEmail){selEmail=(selEmail||"").toLowerCase();
+  var list=PEOPLE.filter(function(p){return p.role==="PV"||p.role==="ADMIN";});
+  if(selEmail&&!list.some(function(p){return p.email===selEmail;})){var pe=personByEmail(selEmail);list=list.concat([{email:selEmail,name:pe?pe.name:nameOf(selEmail)}]);}
+  return list.map(function(p){return '<option value="'+esc(p.email)+'"'+(p.email===selEmail?" selected":"")+'>'+esc(p.name)+'</option>';}).join("");}
 /* kainos įvedimo sekcija: bendra suma ARBA val. įkainis × parduotos valandos */
 /* Dalies pardavimas: dviem būdais — „Bendra suma" (tik suma + terminas) arba
    „Dienos × įkainis" (parduotos dienos × dienos įkainis → bendra suma apskaičiuojama). */
@@ -664,7 +669,7 @@ function viewDetail(){
   var delBtn=(myRole()==="ADMIN")?'<button class="btn danger" data-act="delproject" style="margin-left:8px">'+IC.trash+' Ištrinti projektą</button>':'';
   return '<div class="pane"><button class="backbtn" data-act="back">'+IC.back+' Visi projektai</button>'+
     '<div class="dhead"><div><div class="meta" style="margin-bottom:4px"><span class="prnr">Nr. '+esc(p.id)+'</span>'+(p.status==="closed"?'<span class="dl dl-grey">uždarytas</span>':'')+'</div>'+
-    '<h1>'+esc(p.name)+'</h1><div class="meta"><span class="mi">'+IC.cal+' Terminas '+fmtLT(p.deadline)+'</span><span class="dl dl-'+dl.tone+'">'+dl.txt+'</span><span class="dot"></span><span class="mi">'+p.stages.length+' dalys</span></div></div>'+
+    '<h1>'+esc(p.name)+(pm?'<span class="stg-edit" data-act="editproj" title="Redaguoti Nr./pavadinimą/terminą" style="vertical-align:middle">'+IC.edit+'</span>':'')+'</h1><div class="meta"><span class="mi">'+IC.cal+' Terminas '+fmtLT(p.deadline)+'</span><span class="dl dl-'+dl.tone+'">'+dl.txt+'</span><span class="dot"></span><span class="mi">'+p.stages.length+' dalys</span><span class="dot"></span><span class="mi">PV: '+esc(nameOf(p.pm))+(pm?'<span class="stg-edit" data-act="editpm" title="Keisti PV">'+IC.edit+'</span>':'')+'</span></div></div>'+
     '<div class="readout"><div class="ro-lab">Sugaišta / planas, d.</div><div class="ro-row"><span class="ro-n">'+nfD(t.spent)+'</span><span class="ro-sep">/</span><span class="ro-e">'+nfD(t.planned)+'</span></div>'+
     '<div class="track lg"><i class="fill '+barCls(t.spent,t.planned)+'" style="width:'+(Math.min(pct,1)*100)+'%"></i></div><div class="ro-foot '+(over?"neg":"")+'">'+(over?(IC.warn+' Viršyta '+nfD(-t.left)+' d.'):('Liko '+nfD(t.left)+' d.'))+'</div></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Užduotys ir terminai</span>'+(pm?'<button class="btn sm" data-act="addtask">'+IC.plus+' Užduotis</button>':'')+'</div><div class="tasks">'+(tasks||'<div class="empty">Užduočių nėra.</div>')+'</div></div>'+
@@ -892,6 +897,16 @@ function viewModal(){
      '<label class="field"><span class="eyebrow">Vykdytojas</span><select class="sel" id="te-resp"><option value="">— nepriskirta —</option>'+personOptions(tke.assigneeName||"")+'</select></label>'+
      '<label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="te-due" type="date" value="'+esc(tke.due||"")+'"></label>'+
      '<button class="btn primary wide" data-act="savetaskedit" data-sp="'+esc(m.sp||"")+'">Išsaugoti</button></div>';
+  } else if(m.type==="projedit"){var pp=selProject()||{};
+    inner='<div class="form"><h3>Redaguoti projektą</h3><p class="sub">Keičiant Nr. atnaujinami ir visi susiję įrašai.</p>'+
+     '<div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="pe-id" value="'+esc(pp.id||"")+'"></label>'+
+     '<label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="pe-due" type="date" value="'+esc(pp.deadline||"")+'"></label></div>'+
+     '<label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="pe-name" value="'+esc(pp.name||"")+'"></label>'+
+     '<button class="btn primary wide" data-act="saveproj">Išsaugoti</button></div>';
+  } else if(m.type==="pmedit"){var pp=selProject()||{};
+    inner='<div class="form"><h3>Keisti projekto vadovą</h3><p class="sub">Nr. '+esc(pp.id)+' · '+esc(pp.name)+'</p>'+
+     '<label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="pm-email">'+pmOptions(pp.pm)+'</select></label>'+
+     '<button class="btn primary wide" data-act="savepm">Išsaugoti</button></div>';
   } else if(m.type==="rev"||m.type==="sub"){var isRev=m.type==="rev";
     var partSel="";
     if(!isRev){var pp=projById(state.pelId)||{};var sopt=(pp.stages||[]).filter(function(s){return s.soldPrice!=null||s.soldDays>0;}).map(function(s){return '<option value="'+esc(s.code)+'">'+esc(s.name)+(s.soldDays?(" — parduota "+nfD(stagePlanned(s))+" d."):"")+(s.soldPrice!=null?(" ("+eur(s.soldPrice)+")"):"")+'</option>';}).join("");
@@ -902,7 +917,7 @@ function viewModal(){
       '<label class="ed-lab">Skyrius / dalis</label><select class="sel" id="st-code-'+i+'" style="margin-bottom:10px">'+skyriusOptions(s.code)+'</select>'+
       '<div class="ed-grid"><div><label class="ed-lab">Parduotos dienos</label><input class="inp" id="st-days-'+i+'" type="number" min="0" placeholder="0" value="'+esc(s.days)+'"></div>'+
       '<div><label class="ed-lab">Dalies terminas</label><input class="inp" id="st-due-'+i+'" type="date" value="'+esc(s.due||"")+'"></div></div></div>';}).join("");
-    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">PV parduoda dalims dienas ir terminus. Įrašas keliauja į „Projektai" ir „ProjektoDalys" sąrašus.</p><div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="np-deadline" type="date" value="'+esc(d.deadline)+'"></label></div><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'" placeholder="Projekto pavadinimas"></label><div class="sec-bar" style="margin-top:6px"><span class="eyebrow">Projekto dalys</span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Dalis</button></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti projektą</button></div>';
+    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">PV parduoda dalims dienas ir terminus. Įrašas keliauja į „Projektai" ir „ProjektoDalys" sąrašus.</p><div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="np-deadline" type="date" value="'+esc(d.deadline)+'"></label></div><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'" placeholder="Projekto pavadinimas"></label><label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="np-pm">'+pmOptions(d.pm||state.meEmail)+'</select></label><div class="sec-bar" style="margin-top:6px"><span class="eyebrow">Projekto dalys</span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Dalis</button></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti projektą</button></div>';
   }
   return '<div class="scrim"><div class="sheet'+wide+'"><button class="sheet-x" data-x>'+IC.x+'</button>'+inner+'</div></div>';
 }
@@ -1065,6 +1080,28 @@ async function delRevSub(isRev,sp){var p=projById(state.pelId);
   await withSave(async function(){if(isRev){if(sp)await delItem(L.sutartys,sp);p.revenue=p.revenue.filter(function(r){return String(r.spId)!==String(sp);});}else{if(sp)await delItem(L.subrangai,sp);p.subrangai=p.subrangai.filter(function(r){return String(r.spId)!==String(sp);});recalcStageSub(p);}});
 }
 async function setStatus(st){var p=selProject();await withSave(async function(){await patchItem(L.projektai,p.spId,{Busena:st==="closed"?"Uždarytas":"Aktyvus"});p.status=st;});}
+async function savePm(){var p=selProject();if(!p){state.modal=null;render();return;}var email=((val("pm-email")||"").toLowerCase());state.modal=null;
+  await withSave(async function(){ if(p.spId)await patchItem(L.projektai,p.spId,{VadovoElPastas:email}); p.pm=email; });}
+async function saveProjEdit(){var p=selProject();if(!p){state.modal=null;render();return;}
+  var newId=(val("pe-id")||"").trim(),name=(val("pe-name")||"").trim(),due=val("pe-due");
+  if(!newId||!name){alert("Įvesk Nr. ir pavadinimą.");return;}
+  if(newId!==p.id&&projById(newId)){alert("Projektas Nr. "+newId+" jau egzistuoja. Pasirink kitą numerį.");return;}
+  var oldId=p.id;state.modal=null;
+  await withSave(async function(){
+    if(p.spId)await patchItem(L.projektai,p.spId,{Title:newId,ProjektoNr:newId,Pavadinimas:name,Terminas:due||null});
+    if(newId!==oldId){
+      var jobs=[];
+      (p.stages||[]).forEach(function(s){ if(s.spId)jobs.push([L.dalys,s.spId]); (s.pris||[]).forEach(function(pr){ if(pr.spId)jobs.push([L.priskyrimai,pr.spId]); }); });
+      (p.tasks||[]).forEach(function(t){ if(t.spId)jobs.push([L.uzduotys,t.spId]); });
+      (p.revenue||[]).forEach(function(r){ if(r.spId)jobs.push([L.sutartys,r.spId]); });
+      (p.subrangai||[]).forEach(function(r){ if(r.spId)jobs.push([L.subrangai,r.spId]); });
+      state.regs.forEach(function(r){ if(r.pid===oldId&&r.spId)jobs.push([L.darboLaikas,r.spId]); });
+      for(var i=0;i<jobs.length;i++){ await patchItem(jobs[i][0],jobs[i][1],{Title:newId,ProjektoNr:newId}); }
+      p.id=newId; state.regs.forEach(function(r){ if(r.pid===oldId)r.pid=newId; });
+      if(state.selId===oldId)state.selId=newId; if(state.pelId===oldId)state.pelId=newId;
+    }
+    p.name=name;p.deadline=dOnly(due);
+  });}
 async function deleteProject(){var p=selProject();if(!p||myRole()!=="ADMIN")return;
   if(!confirm('Ištrinti projektą Nr. '+p.id+' „'+p.name+'" ir visus jo įrašus (dalis, priskyrimus, valandas, užduotis, sutartis)? Šito atšaukti negalima.'))return;
   state.view="list";state.tab="projektai";
@@ -1084,14 +1121,15 @@ async function deleteProject(){var p=selProject();if(!p||myRole()!=="ADMIN")retu
   });
 }
 function snapshotDraft(){if(!state.draft)return;var g=function(id){var e=document.getElementById(id);return e?e.value:null;};
-  var id=g("np-id");if(id!=null)state.draft.id=id;var nm=g("np-name");if(nm!=null)state.draft.name=nm;var dl=g("np-deadline");if(dl!=null)state.draft.deadline=dl;
+  var id=g("np-id");if(id!=null)state.draft.id=id;var nm=g("np-name");if(nm!=null)state.draft.name=nm;var dl=g("np-deadline");if(dl!=null)state.draft.deadline=dl;var pm=g("np-pm");if(pm!=null)state.draft.pm=pm;
   state.draft.stages=state.draft.stages.map(function(s,i){return {code:g("st-code-"+i)!=null?g("st-code-"+i):s.code,days:g("st-days-"+i)!=null?g("st-days-"+i):s.days,due:g("st-due-"+i)!=null?g("st-due-"+i):s.due};});}
 async function createProject(){snapshotDraft();var d=state.draft;var seenC={};var stages=d.stages.filter(function(s){var c=s.code.trim();if(!c||seenC[c])return false;seenC[c]=1;return true;});if(!d.id.trim()||!d.name.trim()){alert("Įvesk Nr. ir pavadinimą.");return;}
   if(projById(d.id.trim())){alert("Projektas Nr. "+d.id.trim()+" jau egzistuoja. Pasirink kitą numerį.");return;}
+  var pmEmail=((d.pm||state.meEmail)||"").toLowerCase();
   state.modal=null;state.draft=null;
   await withSave(async function(){
-    var res=await addItem(L.projektai,{Title:d.id,ProjektoNr:d.id,Pavadinimas:d.name,Terminas:d.deadline||iso(30),Busena:"Aktyvus",VadovoElPastas:state.meEmail});
-    var proj={id:d.id,name:d.name,deadline:dOnly(d.deadline),status:"active",pm:state.meEmail,tasks:[],revenue:[],subrangai:[],stages:[],spId:res.id};
+    var res=await addItem(L.projektai,{Title:d.id,ProjektoNr:d.id,Pavadinimas:d.name,Terminas:d.deadline||iso(30),Busena:"Aktyvus",VadovoElPastas:pmEmail});
+    var proj={id:d.id,name:d.name,deadline:dOnly(d.deadline),status:"active",pm:pmEmail,tasks:[],revenue:[],subrangai:[],stages:[],spId:res.id};
     for(var i=0;i<stages.length;i++){var s=stages[i];var sdays=Number(s.days)||0;var srate=skyriusRate(s.code);var sprice=sdays>0?sdays*srate:null;
       var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:s.code,ParduotosDienos:sdays,ParduotaKaina:sprice,DaliesTerminas:s.due||null});
       proj.stages.push({code:s.code,name:skyriusName(s.code),soldDays:sdays,soldPrice:sprice,rate:srate,deadline:dOnly(s.due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id});
@@ -1136,6 +1174,10 @@ document.addEventListener("click",function(e){
     state.modal={type:"stageedit",code:ec,priceMode:mode,days:(est.soldDays!=null?est.soldDays:""),due:est.deadline||"",price:(est.soldPrice!=null?est.soldPrice:""),rate:(mode==="days"?inferRate:"")};render();}
   else if(a==="pricemode"){var mm=state.modal;if(mm){var pfx=mm.type==="stage"?"sg":"se";var dE=document.getElementById(pfx+"-days");if(dE)mm.days=dE.value;var uE=document.getElementById(pfx+"-due");if(uE)mm.due=uE.value;var cE=document.getElementById("sg-code");if(cE)mm.code=cE.value;var pE=document.getElementById(pfx+"-price");if(pE)mm.price=pE.value;var rE=document.getElementById(pfx+"-rate");if(rE)mm.rate=rE.value;mm.priceMode=el.getAttribute("data-m");render();}}
   else if(a==="savestageedit"){saveStageEdit();}
+  else if(a==="editpm"){state.modal={type:"pmedit"};render();}
+  else if(a==="savepm"){savePm();}
+  else if(a==="editproj"){state.modal={type:"projedit"};render();}
+  else if(a==="saveproj"){saveProjEdit();}
   else if(a==="taskdone"){toggleTaskDone(el.getAttribute("data-sp"));}
   else if(a==="assign"){state.modal={type:"assign",pid:el.getAttribute("data-pid"),code:el.getAttribute("data-code"),email:el.getAttribute("data-email")||""};render();}
   else if(a==="saveassign"){saveAssign();}
@@ -1161,7 +1203,7 @@ document.addEventListener("click",function(e){
   else if(a==="savesub"){saveRevSub(false);}
   else if(a==="delrev"){delRevSub(true,el.getAttribute("data-sp"));}
   else if(a==="delsub"){delRevSub(false,el.getAttribute("data-sp"));}
-  else if(a==="newproject"){state.draft={id:"",name:"",deadline:iso(30),stages:[{code:"",days:"",due:"",resp:""}]};state.modal={type:"newproject"};render();}
+  else if(a==="newproject"){state.draft={id:"",name:"",deadline:iso(30),pm:state.meEmail,stages:[{code:"",days:"",due:"",resp:""}]};state.modal={type:"newproject"};render();}
   else if(a==="draft-addstage"){snapshotDraft();state.draft.stages.push({code:"",days:"",due:"",resp:""});render();}
   else if(a==="draft-delstage"){snapshotDraft();state.draft.stages.splice(Number(el.getAttribute("data-i")),1);if(!state.draft.stages.length)state.draft.stages.push({code:"",days:"",due:"",resp:""});render();}
   else if(a==="create"){createProject();}
