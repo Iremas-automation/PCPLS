@@ -190,7 +190,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gr.row:hover{background:#F6F8FA;}
 .gr .r{text-align:right;justify-content:flex-end;display:flex;align-items:center;gap:5px;}
 .gr .who{display:flex;align-items:center;gap:8px;font-size:12.5px;}.gr .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.stg{grid-template-columns:minmax(160px,2fr) 150px 88px 84px 82px minmax(110px,1fr);}
+.stg{grid-template-columns:minmax(160px,2fr) 230px 88px 84px 82px minmax(110px,1fr);}
 .rev{grid-template-columns:1fr 100px 120px 36px;}.disc{grid-template-columns:minmax(150px,2fr) 100px 100px 100px 110px;}
 .grp-sub{padding:7px 14px;background:#EEF2F7;font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--steel-500);border-top:1px solid var(--line);}
 .psum{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
@@ -689,7 +689,7 @@ function viewDetail(){
     var subTag=s.sub?' <span class="pill grey" style="font-size:9px;padding:1px 6px">SUBRANGA</span>':'';
     var who=(s.pris&&s.pris.length)
       ? (s.pris.length===1
-          ? avatar(s.pris[0].name)+'<span style="margin-left:5px;white-space:normal;overflow:visible;text-overflow:clip">'+esc(s.pris[0].name)+'</span>'
+          ? avatar(s.pris[0].name)+'<span style="margin-left:5px;white-space:nowrap;overflow:visible;text-overflow:clip">'+esc(s.pris[0].name)+'</span>'
           : '<span class="avarow sm" title="'+esc(s.pris.map(function(pr){return pr.name;}).join(", "))+'">'+s.pris.map(function(pr){return avatar(pr.name);}).join("")+'</span>')
       : '<span class="muted">'+(s.sub?"subranga":isSvc(s.code)?"paslauga":"skyriui")+'</span>';
     return '<div class="gr row stg"><span style="font-weight:600;font-size:13px">'+esc(s.name)+subTag+dch+'</span>'+
