@@ -688,7 +688,9 @@ function viewDetail(){
     var dch=s.deadline?(function(){var dd=daysBetween(today,s.deadline);var tn=dd<0?"red":dd<=7?"amber":"green";return ' <span class="dl dl-'+tn+'" style="margin-left:6px">iki '+fmtLT(s.deadline)+'</span>';})():'';
     var subTag=s.sub?' <span class="pill grey" style="font-size:9px;padding:1px 6px">SUBRANGA</span>':'';
     var who=(s.pris&&s.pris.length)
-      ? s.pris.map(function(pr){return avatar(pr.name);}).join("")+'<span style="margin-left:5px">'+esc(s.pris.map(function(pr){return pr.name;}).join(", "))+'</span>'
+      ? (s.pris.length===1
+          ? avatar(s.pris[0].name)+'<span style="margin-left:5px;white-space:normal;overflow:visible;text-overflow:clip">'+esc(s.pris[0].name)+'</span>'
+          : '<span class="avarow sm" title="'+esc(s.pris.map(function(pr){return pr.name;}).join(", "))+'">'+s.pris.map(function(pr){return avatar(pr.name);}).join("")+'</span>')
       : '<span class="muted">'+(s.sub?"subranga":isSvc(s.code)?"paslauga":"skyriui")+'</span>';
     return '<div class="gr row stg"><span style="font-weight:600;font-size:13px">'+esc(s.name)+subTag+dch+'</span>'+
       '<span class="who">'+who+(pm?'<span class="stg-edit" data-act="editstage" data-code="'+esc(s.code)+'" title="Redaguoti">'+IC.edit+'</span>':'')+'</span>'+
@@ -938,9 +940,12 @@ function viewModal(){
   } else if(m.type==="assign"){var apr=projById(m.pid)||{};var ast=((apr.stages||[]).find(function(s){return s.code===m.code;}))||{};var aex=m.email?((ast.pris||[]).find(function(p){return p.email===m.email;})):null;
     var popts=m.email?('<option value="'+esc((personByEmail(m.email)||{}).name||m.email)+'" selected>'+esc((personByEmail(m.email)||{}).name||m.email)+'</option>')
       :assignPeopleOptions(m.code,"");
+    var soldD=ast.soldDays||0;
+    var distOthers=(ast.pris||[]).reduce(function(a,pr){return a+((m.email&&pr.email===m.email)?0:(pr.hours||0)/CAP);},0);
+    var remD=Math.max(0,soldD-distOthers); var remTxt=(Math.round(remD*10)/10).toString().replace(".",",");
     inner='<div class="form"><h3>'+(aex?"Keisti priskyrimą":"Priskirti darbuotoją")+'</h3><p class="sub">Nr. '+esc(apr.id||"")+' · '+esc(skyriusName(m.code))+'</p>'+
      '<label class="field"><span class="eyebrow">Darbuotojas</span><select class="sel" id="as-person"'+(m.email?" disabled":"")+'>'+popts+'</select></label>'+
-     '<label class="field"><span class="eyebrow">Planuojamos dienos</span><input class="inp" id="as-days" type="number" min="0" step="0.5" value="'+esc(aex?nfD(aex.hours).replace(",","."):"")+'" placeholder="0"></label>'+
+     '<div class="field"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="eyebrow">Planuojamos dienos</span><button type="button" class="btn sm" data-act="assign-all" data-d="'+remD+'">Visos dienos ('+remTxt+' d.)</button></div><input class="inp" id="as-days" type="number" min="0" step="0.5" value="'+esc(aex?nfD(aex.hours).replace(",","."):"")+'" placeholder="0"><span class="muted" style="font-size:12px;margin-top:4px;display:block">Parduota: '+nfD(soldD*CAP)+' d. · nepriskirta: '+remTxt+' d.</span></div>'+
      '<button class="btn primary wide" data-act="saveassign">Išsaugoti</button></div>';
   } else if(m.type==="taskedit"){var tke=null;(selProject().tasks||[]).forEach(function(t){if(String(t.spId)===String(m.sp))tke=t;});tke=tke||{text:"",assigneeName:"",due:""};
     inner='<div class="form"><h3>Redaguoti užduotį</h3><p class="sub">'+esc(selProject().name)+'</p>'+
@@ -1250,6 +1255,7 @@ document.addEventListener("click",function(e){
   else if(a==="saveproj"){saveProjEdit();}
   else if(a==="taskdone"){toggleTaskDone(el.getAttribute("data-sp"));}
   else if(a==="assign"){state.modal={type:"assign",pid:el.getAttribute("data-pid"),code:el.getAttribute("data-code"),email:el.getAttribute("data-email")||""};render();}
+  else if(a==="assign-all"){var di=document.getElementById("as-days");if(di){di.value=el.getAttribute("data-d");di.focus();}}
   else if(a==="saveassign"){saveAssign();}
   else if(a==="unassign"){unassign(el.getAttribute("data-sp"));}
   else if(a==="edittask"){state.modal={type:"taskedit",sp:el.getAttribute("data-sp")};render();}
