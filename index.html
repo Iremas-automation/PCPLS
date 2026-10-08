@@ -605,7 +605,7 @@ function myTabKeys(){
   return keys;
 }
 function myTabs(){return myTabKeys().map(function(k){return [k,TAB_LT[k],iconFor(k)];});}
-function statusOf(p){ if(p.status==="closed")return {tone:"grey",txt:"Uždarytas"}; var d=p.deadline?daysBetween(today,p.deadline):null; if(d===null)return {tone:"grey",txt:"Be termino"}; if(d<0)return {tone:"red",txt:"Pradelstas"}; if(d<=7)return {tone:"amber",txt:"Baigiasi"}; return {tone:"green",txt:"Vykdomas"}; }
+function statusOf(p){ if(p.status==="closed")return {tone:"grey",txt:"Uždarytas",key:"closed"}; var d=p.deadline?daysBetween(today,p.deadline):null; if(d===null)return {tone:"grey",txt:"Be termino",key:"none"}; if(d<0)return {tone:"red",txt:"Pradelstas",key:"overdue"}; if(d<=7)return {tone:"amber",txt:"Baigiasi",key:"soon"}; return {tone:"green",txt:"Vykdomas",key:"active"}; }
 function projectGroups(list){
   if(state.sortBy==="nr"){ return [{key:"nr:all",label:"Visi projektai (pagal Nr.)",tone:"grey",items:list}]; }
   if(state.sortBy==="pv"){
@@ -624,7 +624,11 @@ function projectGroups(list){
 }
 function viewList(){
   var q=(state.q||"").trim().toLowerCase();
-  var list=PROJECTS.filter(function(p){return state.showClosed?true:p.status!=="closed";});
+  var fs=state.fStatus||"open"; // open = visi neuždaryti (numatyta)
+  var list=PROJECTS.filter(function(p){var k=statusOf(p).key;
+    if(fs==="all")return true;
+    if(fs==="open")return k!=="closed";
+    return k===fs;});
   if(q)list=list.filter(function(p){return String(p.id).toLowerCase().indexOf(q)>=0||(p.name||"").toLowerCase().indexOf(q)>=0||(pmName(p)||"").toLowerCase().indexOf(q)>=0;});
   list=list.slice().sort(state.sortBy==="nr"
     ?function(a,b){return String(a.id).localeCompare(String(b.id),undefined,{numeric:true});}
@@ -652,12 +656,13 @@ function viewList(){
   }).join("");
   var table=list.length?'<div class="ptblwrap"><div class="ptbl">'+colHead+body+'</div></div>':'<div class="empty">Projektų nėra. Pridėk įrašų į „Projektai" sąrašą arba spausk „Naujas projektas".</div>';
   var newBtn=(myRole()==="PV"||myRole()==="ADMIN")?'<button class="btn primary" data-act="newproject">'+IC.plus+' Naujas projektas</button>':'';
-  var closedToggle=closedN?'<button class="btn sm" data-act="toggleclosed">'+(state.showClosed?"Slėpti uždarytus":("Rodyti uždarytus ("+closedN+")"))+'</button>':'';
+  var stO=[["open","Vykdomi (visi)"],["active","Vykdomi"],["soon","Baigiasi"],["overdue","Pradelsti"],["none","Be termino"],["closed","Uždaryti"+(closedN?" ("+closedN+")":"")],["all","Visos būsenos"]];
+  var statusFilter='<select class="sel" id="status-filter" style="height:36px;width:auto">'+stO.map(function(o){return '<option value="'+o[0]+'"'+((state.fStatus||"open")===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>';
   var groupBtn='<button class="btn sm" data-act="togglesort">Rikiuoti: '+(state.sortBy==="pv"?"pagal PV":state.sortBy==="nr"?"pagal Nr.":"pagal terminą")+'</button>';
   var searchBox='<input class="inp" id="proj-q" placeholder="Ieškoti: Nr., pavadinimas, PV…" value="'+esc(state.q||"")+'" style="max-width:240px;height:36px">';
   var foundNote=q?'<div class="muted" style="font-size:12px;margin:2px 0 8px">Rasta: '+list.length+'</div>':'';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Visi projektai</span><h1>Projektai</h1></div>'+
-    '<div class="kpis">'+searchBox+'<div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+groupBtn+closedToggle+newBtn+'</div></div>'+
+    '<div class="kpis">'+searchBox+'<div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+statusFilter+groupBtn+newBtn+'</div></div>'+
     foundNote+table+'</div>';
 }
 function viewDetail(){
@@ -1192,7 +1197,6 @@ document.addEventListener("click",function(e){
   else if(a==="signout"){msalApp.logoutRedirect();}
   else if(a==="open"){state.selId=el.getAttribute("data-id");state.view="detail";state.tab="projektai";render();}
   else if(a==="back"){state.view="list";state.tab="projektai";render();}
-  else if(a==="toggleclosed"){state.showClosed=!state.showClosed;render();}
   else if(a==="closeproj"){setStatus("closed");}
   else if(a==="reopen"){setStatus("active");}
   else if(a==="delproject"){deleteProject();}
@@ -1260,7 +1264,8 @@ document.addEventListener("input",function(e){var id=e.target.id||"";
   }
 });
 document.addEventListener("change",function(e){var id=e.target.id,v=e.target.value;
-  if(id==="f-pel"){state.pelId=v;render();}
+  if(id==="status-filter"){state.fStatus=v;render();}
+  else if(id==="f-pel"){state.pelId=v;render();}
   else if(id==="f-from"){state.fFrom=v;render();}
   else if(id==="f-to"){state.fTo=v;render();}
   else if(id==="f-user"){state.fUser=v;render();}
