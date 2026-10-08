@@ -548,7 +548,15 @@ function deptSummaryTable(){
   var riskMsg=atRisk.length?('<div class="warnbar red">⚠ '+atRisk.length+' projekt'+(atRisk.length===1?"as":"ai")+' gali nespėti iki termino (liko daugiau darbo nei laiko): '+atRisk.map(function(p){return "Nr. "+esc(p.id);}).join(", ")+'</div>'):'';
   return '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių apkrova — parduota darbo</span></div><div class="ptblwrap"><div class="gtbl" style="border:none"><div class="gr th dsum"><span>Skyrius</span><span class="r">Terminas šį mėn.</span><span class="r">Parduota</span><span class="r">Pradirbta</span><span class="r">Liko</span></div>'+body+'</div></div><div class="warnbar '+capTone+'">'+capMsg+'</div>'+riskMsg+'</div>';
 }
-function profit(p){var rev=(p.revenue||[]).reduce(function(a,r){return a+(r.sum||0);},0);var sub=(p.subrangai||[]).reduce(function(a,r){return a+(r.sum||0);},0);var emp=p.stages.reduce(function(a,s){return a+stageCost(p,s);},0);return {rev:rev,sub:sub,emp:emp,profit:rev-sub-emp};}
+/* parduotų dalių ir paslaugų bendra suma (komercinio pasiūlymo pajamos) */
+function soldTotal(p){return (p.stages||[]).reduce(function(a,s){var v=soldSum(p,s);return a+(v||0);},0);}
+function profit(p){
+  var contractRev=(p.revenue||[]).reduce(function(a,r){return a+(r.sum||0);},0);
+  var fromSold=!(p.revenue&&p.revenue.length); // jei sutarčių neįvesta — pajamos iš parduotų dalių/paslaugų
+  var rev=fromSold?soldTotal(p):contractRev;
+  var sub=(p.subrangai||[]).reduce(function(a,r){return a+(r.sum||0);},0);
+  var emp=p.stages.reduce(function(a,s){return a+stageCost(p,s);},0);
+  return {rev:rev,sub:sub,emp:emp,profit:rev-sub-emp,fromSold:fromSold};}
 function deadlineChip(p){if(p.status==="closed")return {tone:"grey",txt:"uždarytas"};if(!p.deadline)return {tone:"grey",txt:"—"};var d=daysBetween(today,p.deadline);var tone=d<0?"red":d<=7?"amber":"green";var txt=d<0?(Math.abs(d)+" d. pradelsta"):d===0?"šiandien":("liko "+d+" d.");return {tone:tone,txt:txt};}
 function barCls(sp,pl){return sp>pl?"over":(pl&&sp>=pl?"done":"wip");}
 function projById(id){return PROJECTS.find(function(p){return p.id===id;});}
@@ -761,11 +769,11 @@ function viewPelningumas(){
     : discP.map(discRow).join("")+svcP.map(discRow).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Vadovams</span><h1>Pelningumas</h1></div>'+
     '<div class="filters"><div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-pel">'+opts+'</select></div></div></div>'+
-    '<div class="psum"><div class="pcard"><div class="pl">Pajamos (sutartys)</div><div class="pv">'+eur(pr.rev)+'</div></div>'+
+    '<div class="psum"><div class="pcard"><div class="pl">Pajamos</div><div class="pv">'+eur(pr.rev)+'</div><div class="psub">'+(pr.fromSold?"iš parduotų dalių ir paslaugų":"pagal sutartis")+'</div></div>'+
     '<div class="pcard"><div class="pl">Subrangai</div><div class="pv">'+eur(pr.sub)+'</div></div>'+
     '<div class="pcard"><div class="pl">Darbuotojų sąnaudos</div><div class="pv">'+eur(pr.emp)+'</div><div class="psub">išdirbtos d. × įkainis</div></div>'+
     '<div class="pcard '+(pr.profit>=0?"profit":"loss")+'"><div class="pl">Pelnas / nuostolis</div><div class="pv">'+eur(pr.profit)+'</div><div class="psub">pajamos − subrangai − darbuotojai</div></div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Pajamos — sutartys</span><button class="btn sm" data-act="addrev">'+IC.plus+' Sutartis / papildymas</button></div><div class="gtbl"><div class="gr th rev"><span>Sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(revRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
+    '<div class="section"><div class="sec-bar"><span class="eyebrow">Pajamos — sutartys</span><button class="btn sm" data-act="addrev">'+IC.plus+' Sutartis / papildymas</button></div>'+(pr.fromSold?'<div class="muted" style="font-size:12px;margin-bottom:8px">Kol sutarčių neįvesta, pajamos imamos iš parduotų dalių ir paslaugų ('+eur(soldTotal(p))+'). Įvedus sutartį(-is), pajamos skaičiuojamos pagal jas.</div>':'')+'<div class="gtbl"><div class="gr th rev"><span>Sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(revRows||'<div class="empty">Nėra — pajamos iš parduotų eilučių.</div>')+'</div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Išlaidos — subrangai</span><button class="btn sm" data-act="addsub">'+IC.plus+' Subranga</button></div><div class="gtbl"><div class="gr th rev"><span>Tiekėjas / sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(subRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div><div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Subrangai</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
 }
