@@ -54,7 +54,10 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .pane{padding:22px 32px 40px;}
 .pane-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:18px;flex-wrap:wrap;}
 .pane-head h1{font-size:22px;font-weight:750;letter-spacing:-.01em;margin:7px 0 0;}
-.kpis{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.kpis{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.kpis .sel,.kpis .btn{height:38px;display:inline-flex;align-items:center;}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.toolbar #proj-q{flex:1 1 220px;min-width:180px;max-width:360px;height:38px;}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 16px;text-align:center;}
 .kpi.warn{border-color:rgba(192,58,43,.35);background:rgba(192,58,43,.05);}
 .kpi-n{display:block;font-family:var(--mono);font-size:22px;font-weight:700;color:var(--blue-deep);}
@@ -657,13 +660,14 @@ function viewList(){
   var table=list.length?'<div class="ptblwrap"><div class="ptbl">'+colHead+body+'</div></div>':'<div class="empty">Projektų nėra. Pridėk įrašų į „Projektai" sąrašą arba spausk „Naujas projektas".</div>';
   var newBtn=(myRole()==="PV"||myRole()==="ADMIN")?'<button class="btn primary" data-act="newproject">'+IC.plus+' Naujas projektas</button>':'';
   var stO=[["open","Vykdomi (visi)"],["active","Vykdomi"],["soon","Baigiasi"],["overdue","Pradelsti"],["none","Be termino"],["closed","Uždaryti"+(closedN?" ("+closedN+")":"")],["all","Visos būsenos"]];
-  var statusFilter='<select class="sel" id="status-filter" style="height:36px;width:auto">'+stO.map(function(o){return '<option value="'+o[0]+'"'+((state.fStatus||"open")===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>';
+  var statusFilter='<select class="sel" id="status-filter" style="width:auto">'+stO.map(function(o){return '<option value="'+o[0]+'"'+((state.fStatus||"open")===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>';
   var groupBtn='<button class="btn sm" data-act="togglesort">Rikiuoti: '+(state.sortBy==="pv"?"pagal PV":state.sortBy==="nr"?"pagal Nr.":"pagal terminą")+'</button>';
-  var searchBox='<input class="inp" id="proj-q" placeholder="Ieškoti: Nr., pavadinimas, PV…" value="'+esc(state.q||"")+'" style="max-width:240px;height:36px">';
-  var foundNote=q?'<div class="muted" style="font-size:12px;margin:2px 0 8px">Rasta: '+list.length+'</div>':'';
+  var searchBox='<input class="inp" id="proj-q" placeholder="Ieškoti: Nr., pavadinimas, PV…" value="'+esc(state.q||"")+'">';
+  var foundNote=q?'<span class="muted" style="font-size:12px;white-space:nowrap">Rasta: '+list.length+'</span>':'';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Visi projektai</span><h1>Projektai</h1></div>'+
-    '<div class="kpis">'+searchBox+'<div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+statusFilter+groupBtn+newBtn+'</div></div>'+
-    foundNote+table+'</div>';
+    '<div class="kpis"><div class="kpi warn"><span class="kpi-n">'+overrun+'</span><span class="kpi-l">viršija planą</span></div>'+statusFilter+groupBtn+newBtn+'</div></div>'+
+    '<div class="toolbar">'+searchBox+foundNote+'</div>'+
+    table+'</div>';
 }
 function viewDetail(){
   var p=selProject();if(!p)return viewList();
