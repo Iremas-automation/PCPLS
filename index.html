@@ -166,7 +166,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .stg-edit{color:var(--steel-400);cursor:pointer;display:inline-grid;place-items:center;margin-left:6px;vertical-align:-3px;}.stg-edit:hover{color:var(--blue);}
 .adm{grid-template-columns:minmax(150px,1.5fr) minmax(170px,1.6fr) 120px 78px 82px 150px 62px;}
 .team2{grid-template-columns:80px 1.6fr 1.4fr 90px 46px;}
-.svsub{grid-template-columns:minmax(150px,2fr) 70px 160px 100px 100px;}
+.svsub{grid-template-columns:minmax(150px,2fr) 70px 150px 95px 95px 110px;}
 .svpart{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--panel);}
 .svp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
 .svp-top .gh-nr{font-family:var(--mono);color:#fff;background:var(--blue);padding:2px 7px;border-radius:4px;font-size:11px;}
@@ -728,10 +728,6 @@ function viewDetail(){
 }
 function viewMine(){
   var items=myStages();
-  var planned=0,spent=0;items.forEach(function(it){planned+=stagePlanned(it.s);spent+=stageSpent(it.p.id,it.s.code);});
-  var left=planned-spent;
-  var wk=WB.slice(0,5),wkLoad=0;wk.forEach(function(d){ if(myAbsence(d)){wkLoad+=CAP;} else { wkLoad+=state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.date===d)?r.hours:0);},0);} });
-  var wkUtil=Math.round(wkLoad/(5*CAP)*100);
   var MD=monthWorkdays(state.tsOff);
   var head='<div class="hc head sticky">Dalis</div>';
   MD.forEach(function(d){var dt=new Date(d),td=d===isoD(today);head+='<div class="hc head'+(td?" today":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});
@@ -769,8 +765,7 @@ function viewMine(){
         '<span class="r"><span class="dl dl-'+dtone+'">'+(dl?fmtLT(dl):"—")+'</span></span></div>';}).join("");
     return hdr+rows;}).join("");
   var sumTable=items.length?'<div class="section"><div class="sec-bar"><span class="eyebrow">Mano projektai — atlikimas</span></div><div class="ptblwrap"><div class="gtbl"><div class="gr th mysum"><span>Projekto dalis</span><span class="r">Suplanuota, d.</span><span class="r">Sugaišta, d.</span><span class="r">Liko, d.</span><span class="r">Terminas</span></div>'+sumRows+'</div></div></div>':'';
-  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()])+'</span><h1>Mano projektai</h1></div>'+
-    '<div class="kpis"><div class="kpi '+(wkUtil>100?"warn":"")+'"><span class="kpi-n">'+wkUtil+'%</span><span class="kpi-l">šios sav. apkrova</span></div></div></div>'+
+  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()])+'</span><h1>Mano projektai</h1></div></div>'+
     sumTable+
     '<div class="sec-bar" style="margin-top:20px"><span class="eyebrow">Mano valandos — spausk langelį įvesti ar pasitaisyti</span>'+monthNav+'</div>'+grid+
     '<div class="legend"><span>Šiandienos stulpelis pažymėtas mėlynai.</span><span><i style="background:rgba(192,58,43,.22)"></i>&gt;'+CAP+' val./d.</span><span><b class="abs-chip abs-A">A</b> atostogos</span><span><b class="abs-chip abs-L">L</b> liga</span><span><b class="abs-chip abs-K">K</b> komandiruotė</span></div>'+myTasksSection+'</div>';
@@ -847,13 +842,18 @@ function viewSvWork(){
     var logH=state.regs.reduce(function(a,r){return a+(r.who===sub.name?r.hours:0);},0);
     var nearest=null;ap.forEach(function(x){var dd=x.s.deadline||x.pr.deadline;if(dd&&(!nearest||new Date(dd)<new Date(nearest)))nearest=dd;});
     var ndch=nearest?(function(){var n=daysBetween(today,nearest);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'">iki '+fmtLT(nearest)+'</span>';})():'<span class="muted" style="font-size:12px">—</span>';
+    var wkDays=WB.slice(0,5);
+    var wkH=wkDays.reduce(function(a,d){return a+(absenceOf(sub.email,d)?CAP:state.regs.reduce(function(b,r){return b+((r.whoEmail===sub.email&&r.date===d)?r.hours:0);},0));},0);
+    var wkPct=Math.round(wkH/(5*CAP)*100);
+    var wkTone=wkPct>100?"red":wkPct>=85?"amber":"green";
     return '<div class="gr row svsub"><span class="who">'+avatar(sub.name)+'<span style="font-weight:600">'+esc(sub.name)+'</span></span>'+
       '<span class="r mono">'+nP+'</span><span>'+ndch+'</span>'+
-      '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span></div>';
+      '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span>'+
+      '<span class="r"><span class="pill '+wkTone+'">'+wkPct+'%</span></span></div>';
   }).join("");
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>'+
-    '<div class="section" style="margin-top:22px"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span></div>'+(subRows||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div></div>';
+    '<div class="section" style="margin-top:22px"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(subRows||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div></div>';
 }
 function viewStats(){
   var STAT=PEOPLE.filter(function(p){return p.inStats;});
