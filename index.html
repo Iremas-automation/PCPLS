@@ -570,6 +570,9 @@ function myStages(){var seen={};var meE=(state.meEmail||"").trim().toLowerCase()
   });return a;},[]);}
 function myDayHours(pid,code,date){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code&&r.date===date)?r.hours:0);},0);}
 function myStageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code)?r.hours:0);},0);}
+/* nuolatiniai (visiems „kabantys") bendri laukai valandoms vesti — ne realūs projektai */
+var STANDING=[{id:"IKISUTART",name:"Ikisutartiniai darbai"},{id:"KITA",name:"Kita (poliklinika, kava ir pan.)"}];
+function standingItems(){return STANDING.map(function(b){return {p:{id:b.id,name:b.name,deadline:null,status:"active",standing:true},s:{code:b.id,name:b.name,deadline:null},myHours:0,standing:true};});}
 function personOptions(sel){return PEOPLE.filter(function(p){return p.inProjects||p.name===sel;}).map(function(p){return '<option value="'+esc(p.name)+'"'+(p.name===sel?" selected":"")+'>'+esc(p.name)+'</option>';}).join("");}
 function skyriusOptions(sel){return '<option value="">— pasirink dalį —</option>'+SKYRIAI.map(function(s){return '<option value="'+esc(s.code)+'"'+(s.code===sel?" selected":"")+'>'+esc(s.code)+' — '+esc(s.name)+'</option>';}).join("");}
 /* PV pasirinkimas: PV ir Admin rolės žmonės (value=el. paštas); visada įtraukiamas pažymėtasis */
@@ -732,15 +735,17 @@ function viewMine(){
   var head='<div class="hc head sticky">Dalis</div>';
   MD.forEach(function(d){var dt=new Date(d),td=d===isoD(today);head+='<div class="hc head'+(td?" today":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});
   head+='<div class="hc head tot">Viso</div>';
-  var byProj={},order=[];items.forEach(function(it){if(!byProj[it.p.id]){byProj[it.p.id]=[];order.push(it.p);}byProj[it.p.id].push(it);});
+  var tsItems=items.concat(standingItems());
+  var byProj={},order=[];tsItems.forEach(function(it){if(!byProj[it.p.id]){byProj[it.p.id]=[];order.push(it.p);}byProj[it.p.id].push(it);});
   var rows=order.map(function(p){
-    var pl=0,sp=0;byProj[p.id].forEach(function(it){pl+=stagePlanned(it.s);sp+=stageSpent(it.p.id,it.s.code);});
-    var lk=pl-sp;
-    var dch=p.deadline?'<span class="dl dl-'+(daysBetween(today,p.deadline)<0?"red":daysBetween(today,p.deadline)<=7?"amber":"green")+'" style="margin-left:8px">iki '+fmtLT(p.deadline)+'</span>':'';
-    var hdr='<div class="grouphdr"><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+dch+'</div>';
+    var dch=(!p.standing&&p.deadline)?'<span class="dl dl-'+(daysBetween(today,p.deadline)<0?"red":daysBetween(today,p.deadline)<=7?"amber":"green")+'" style="margin-left:8px">iki '+fmtLT(p.deadline)+'</span>':'';
+    var hdr=p.standing
+      ? '<div class="grouphdr" style="opacity:.92"><span class="gh-nr" style="background:var(--steel-500)">BENDRA</span> '+esc(p.name)+'</div>'
+      : '<div class="grouphdr"><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+dch+'</div>';
     var body=byProj[p.id].map(function(it){
-      var pdl=it.s.deadline||it.p.deadline;
+      var pdl=it.p.standing?null:(it.s.deadline||it.p.deadline);
       var tot=0;var cells=MD.map(function(d){var ab=myAbsence(d);var dcls=dlCellCls(pdl,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(dcls==="dl-day"?' title="Dalies terminas — '+fmtLT(pdl)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
+      if(it.p.standing){ return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>'; }
       var rowDch=it.s.deadline?(function(){var n=daysBetween(today,it.s.deadline);return ' <span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'" style="font-size:9.5px">iki '+fmtLT(it.s.deadline)+'</span>';})():'';
       var lkS=(it.myHours||0)-myStageSpent(it.p.id,it.s.code);
       var rowLk=' <span class="ghliko'+(lkS<0?" neg":"")+'" style="margin-left:6px;font-size:9.5px">liko '+nfD(lkS)+' d.</span>';
@@ -748,7 +753,7 @@ function viewMine(){
     }).join("");
     return hdr+body;
   }).join("");
-  var grid=items.length?'<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:300px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>':'<div class="empty">Jums šiuo metu nepriskirta jokių darbų (žr. „Priskyrimai" sąrašą).</div>';
+  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:300px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>';
   var monthNav='<div class="monthnav"><button class="btn sm" data-act="tsprev">‹</button><span class="mlabel">'+esc(monthLabelOf(state.tsOff))+'</span><button class="btn sm" data-act="tsnext">›</button>'+(state.tsOff!==0?'<button class="btn sm" data-act="tsnow">Šis mėnuo</button>':'')+'</div>';
   var myTasks=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){(p.tasks||[]).forEach(function(tk){if(tk.assignee&&tk.assignee===state.meEmail)myTasks.push({p:p,tk:tk});});});
   myTasks.sort(function(a,b){return (a.tk.done?1:0)-(b.tk.done?1:0)||new Date(a.tk.due||"2100")-new Date(b.tk.due||"2100");});
