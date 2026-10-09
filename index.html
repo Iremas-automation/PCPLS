@@ -374,6 +374,7 @@ function numOr(v,def){if(v===null||v===undefined||v==="")return def;var n=Number
 function isoD(d){var x=new Date(d);return x.getFullYear()+"-"+pad2(x.getMonth()+1)+"-"+pad2(x.getDate());}
 function iso(off){return isoD(addDays(today,off));}
 function dOnly(s){return s?String(s).slice(0,10):"";}
+function spDate(s){var d=dOnly(s);return d?d+"T12:00:00Z":null;}
 function fmtLT(s){return s?new Date(s).toLocaleDateString("lt-LT",{year:"2-digit",month:"2-digit",day:"2-digit"}):"—";}
 function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/MS);}
 function dlCellCls(deadlineISO,d){ if(!deadlineISO)return ""; var diff=daysBetween(d,deadlineISO); if(diff===0)return "dl-day"; if(diff>0&&diff<=3)return "dl-soon"; return ""; }
@@ -1069,7 +1070,7 @@ async function saveCell(){
     var dups=state.regs.filter(function(r){return r.who===state.me&&r.pid===m.pid&&r.code===m.code&&r.date===m.date;});
     for(var i=0;i<dups.length;i++){ if(dups[i].spId) await delItem(L.darboLaikas,dups[i].spId); }
     state.regs=state.regs.filter(function(r){return !(r.who===state.me&&r.pid===m.pid&&r.code===m.code&&r.date===m.date);});
-    if(h>0){ var res=await addItem(L.darboLaikas,{Title:m.pid,ProjektoNr:m.pid,SkyriausKodas:m.code,DarbuotojoElPastas:state.meEmail,Data:m.date,Valandos:h});
+    if(h>0){ var res=await addItem(L.darboLaikas,{Title:m.pid,ProjektoNr:m.pid,SkyriausKodas:m.code,DarbuotojoElPastas:state.meEmail,Data:spDate(m.date),Valandos:h});
       state.regs.push({who:state.me,whoEmail:state.meEmail,pid:m.pid,code:m.code,date:m.date,hours:h,spId:res.id}); }
   });
 }
@@ -1084,7 +1085,7 @@ async function setAbsence(date,type){ state.modal=null;
   await withSave(async function(){
     var key=state.meEmail+"|"+date, ex=absMap[key];
     if(ex){ if(ex.spId) await patchItem(L.nebuvimai,ex.spId,{Tipas:type}); ex.type=type; }
-    else { var res=await addItem(L.nebuvimai,{Title:state.meEmail,DarbuotojoElPastas:state.meEmail,Data:date,Tipas:type});
+    else { var res=await addItem(L.nebuvimai,{Title:state.meEmail,DarbuotojoElPastas:state.meEmail,Data:spDate(date),Tipas:type});
       var a={email:state.meEmail,date:date,type:type,spId:res.id}; state.absences.push(a); absMap[key]=a; }
   });
 }
@@ -1097,7 +1098,7 @@ async function clearAbsence(date){ state.modal=null;
   });
 }
 async function saveTask(){var t=document.getElementById("tk-text").value.trim(),due=document.getElementById("tk-due").value,rn=document.getElementById("tk-resp").value;if(!t){alert("Įvesk užduotį.");return;}var p=selProject();var pe=rn?person(rn):null;state.modal=null;
-  await withSave(async function(){var res=await addItem(L.uzduotys,{Title:p.id,ProjektoNr:p.id,Uzduotis:t,Terminas:due||iso(14),Vykdytojas:pe?pe.email:""});p.tasks.push({text:t,due:due||iso(14),assignee:pe?pe.email:"",assigneeName:pe?pe.name:"",spId:res.id});});
+  await withSave(async function(){var res=await addItem(L.uzduotys,{Title:p.id,ProjektoNr:p.id,Uzduotis:t,Terminas:spDate(due||iso(14)),Vykdytojas:pe?pe.email:""});p.tasks.push({text:t,due:due||iso(14),assignee:pe?pe.email:"",assigneeName:pe?pe.name:"",spId:res.id});});
 }
 async function saveStage(){var p=selProject();var mm=state.modal||{};var svc=mm.kind==="svc";
   var code=svc?((document.getElementById("sg-name")||{}).value||"").trim():(document.getElementById("sg-code")||{}).value;
@@ -1107,7 +1108,7 @@ async function saveStage(){var p=selProject();var mm=state.modal||{};var svc=mm.
   var subE=document.getElementById("sg-sub");var isub=!svc&&!!(subE&&subE.checked);
   var sale=readSale("sg",mm.priceMode,skyriusRate(code));var days=sale.days,price=sale.price;state.modal=null;
   await withSave(async function(){
-    var dres=await addItem(L.dalys,{Title:p.id,ProjektoNr:p.id,SkyriausKodas:code,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:due||null,Subranga:isub?"Taip":null});
+    var dres=await addItem(L.dalys,{Title:p.id,ProjektoNr:p.id,SkyriausKodas:code,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:isub?"Taip":null});
     p.stages.push({code:code,name:skyriusName(code),soldDays:days,soldPrice:price,rate:skyriusRate(code),deadline:dOnly(due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id,subSum:0,subDays:0,sub:isub});
   });
 }
@@ -1116,14 +1117,14 @@ async function saveStageEdit(){var p=selProject();var m=state.modal;var st=(p.st
   var subE=document.getElementById("se-sub");var isub=!isSvc(m.code)&&!!(subE&&subE.checked);
   state.modal=null;
   await withSave(async function(){
-    if(st.spId) await patchItem(L.dalys,st.spId,{ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:due||null,Subranga:isub?"Taip":null});
+    if(st.spId) await patchItem(L.dalys,st.spId,{ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:isub?"Taip":null});
     st.soldDays=days;st.soldPrice=price;st.deadline=dOnly(due);st.sub=isub;
   });
 }
 async function saveTaskEdit(sp){var p=selProject();var tk=null;(p.tasks||[]).forEach(function(t){if(String(t.spId)===String(sp))tk=t;});if(!tk){state.modal=null;render();return;}
   var text=val("te-text").trim();var rn=val("te-resp");var pe=rn?person(rn):null;var due=val("te-due");
   if(!text){alert("Įvesk užduotį.");return;} state.modal=null;
-  await withSave(async function(){ await patchItem(L.uzduotys,sp,{Uzduotis:text,Vykdytojas:pe?pe.email:"",Terminas:due||tk.due}); tk.text=text;tk.assignee=pe?pe.email:"";tk.assigneeName=pe?pe.name:"";tk.due=due||tk.due; });
+  await withSave(async function(){ await patchItem(L.uzduotys,sp,{Uzduotis:text,Vykdytojas:pe?pe.email:"",Terminas:spDate(due||tk.due)}); tk.text=text;tk.assignee=pe?pe.email:"";tk.assigneeName=pe?pe.name:"";tk.due=due||tk.due; });
 }
 async function saveAssign(){var m=state.modal;var pr=projById(m.pid);if(!pr){state.modal=null;render();return;}var st=(pr.stages||[]).find(function(s){return s.code===m.code;});if(!st){state.modal=null;render();return;}
   var email=m.email; if(!email){var nm=val("as-person");var pe=nm?person(nm):null;email=pe?pe.email:"";}
@@ -1181,8 +1182,8 @@ async function saveTeam(sp){
 async function delTask(sp){var p=selProject();state.modal=null;await withSave(async function(){if(sp)await delItem(L.uzduotys,sp);p.tasks=p.tasks.filter(function(t){return String(t.spId)!==String(sp);});});}
 async function saveRevSub(isRev){var t=document.getElementById("rv-title").value.trim(),date=document.getElementById("rv-date").value,sum=Number(document.getElementById("rv-sum").value)||0;var code=isRev?"":((document.getElementById("rv-code")||{}).value||"").trim();if(!t){alert("Įvesk pavadinimą.");return;}var p=projById(state.pelId);state.modal=null;
   await withSave(async function(){
-    if(isRev){var res=await addItem(L.sutartys,{Title:p.id,ProjektoNr:p.id,Sutartis:t,Data:date||null,SumaBePVM:sum});p.revenue.push({title:t,date:dOnly(date),sum:sum,spId:res.id});}
-    else{var r2=await addItem(L.subrangai,{Title:p.id,ProjektoNr:p.id,Tiekejas:t,Data:date||null,SumaBePVM:sum,SkyriausKodas:code||null});p.subrangai.push({title:t,date:dOnly(date),sum:sum,code:code||null,spId:r2.id});recalcStageSub(p);}
+    if(isRev){var res=await addItem(L.sutartys,{Title:p.id,ProjektoNr:p.id,Sutartis:t,Data:spDate(date),SumaBePVM:sum});p.revenue.push({title:t,date:dOnly(date),sum:sum,spId:res.id});}
+    else{var r2=await addItem(L.subrangai,{Title:p.id,ProjektoNr:p.id,Tiekejas:t,Data:spDate(date),SumaBePVM:sum,SkyriausKodas:code||null});p.subrangai.push({title:t,date:dOnly(date),sum:sum,code:code||null,spId:r2.id});recalcStageSub(p);}
   });
 }
 async function delRevSub(isRev,sp){var p=projById(state.pelId);
@@ -1197,7 +1198,7 @@ async function saveProjEdit(){var p=selProject();if(!p){state.modal=null;render(
   if(newId!==p.id&&projById(newId)){alert("Projektas Nr. "+newId+" jau egzistuoja. Pasirink kitą numerį.");return;}
   var oldId=p.id;state.modal=null;
   await withSave(async function(){
-    if(p.spId)await patchItem(L.projektai,p.spId,{Title:newId,ProjektoNr:newId,Pavadinimas:name,Terminas:due||null});
+    if(p.spId)await patchItem(L.projektai,p.spId,{Title:newId,ProjektoNr:newId,Pavadinimas:name,Terminas:spDate(due)});
     if(newId!==oldId){
       var jobs=[];
       (p.stages||[]).forEach(function(s){ if(s.spId)jobs.push([L.dalys,s.spId]); (s.pris||[]).forEach(function(pr){ if(pr.spId)jobs.push([L.priskyrimai,pr.spId]); }); });
@@ -1240,13 +1241,13 @@ async function createProject(){snapshotDraft();var d=state.draft;var seenC={};va
   var pmEmail=((d.pm||state.meEmail)||"").toLowerCase();
   state.modal=null;state.draft=null;
   await withSave(async function(){
-    var res=await addItem(L.projektai,{Title:d.id,ProjektoNr:d.id,Pavadinimas:d.name,Terminas:d.deadline||iso(30),Busena:"Aktyvus",VadovoElPastas:pmEmail});
+    var res=await addItem(L.projektai,{Title:d.id,ProjektoNr:d.id,Pavadinimas:d.name,Terminas:spDate(d.deadline||iso(30)),Busena:"Aktyvus",VadovoElPastas:pmEmail});
     var proj={id:d.id,name:d.name,deadline:dOnly(d.deadline),status:"active",pm:pmEmail,tasks:[],revenue:[],subrangai:[],stages:[],spId:res.id};
     for(var i=0;i<stages.length;i++){var s=stages[i];var code=(s.code||"").trim();var sdays=Number(s.days)||0;var srate=skyriusRate(code);
       var sumIn=(s.sum!=null&&String(s.sum).trim()!=="")?Number(s.sum):null;
       var sprice=sumIn!=null?sumIn:(sdays>0?sdays*srate:null);
       var isub=!isSvc(code)&&!!s.sub;
-      var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:code,ParduotosDienos:sdays,ParduotaKaina:sprice,DaliesTerminas:s.due||null,Subranga:isub?"Taip":null});
+      var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:code,ParduotosDienos:sdays,ParduotaKaina:sprice,DaliesTerminas:spDate(s.due),Subranga:isub?"Taip":null});
       proj.stages.push({code:code,name:skyriusName(code),soldDays:sdays,soldPrice:sprice,rate:srate,deadline:dOnly(s.due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id,subSum:0,subDays:0,sub:isub});
     }
     PROJECTS.push(proj);state.selId=proj.id;state.view="detail";state.tab="projektai";
