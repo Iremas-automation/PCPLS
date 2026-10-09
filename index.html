@@ -571,7 +571,7 @@ function myStages(){var seen={};var meE=(state.meEmail||"").trim().toLowerCase()
 function myDayHours(pid,code,date){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code&&r.date===date)?r.hours:0);},0);}
 function myStageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code)?r.hours:0);},0);}
 /* nuolatiniai (visiems „kabantys") bendri laukai valandoms vesti — ne realūs projektai */
-var STANDING=[{id:"IKISUTART",name:"Ikisutartiniai darbai"},{id:"KITA",name:"Kita (poliklinika, kava ir pan.)"}];
+var STANDING=[{id:"IKISUTART",name:"Iki sutartiniai darbai"},{id:"KITA",name:"Kita (poliklinika, kava ir pan.)"}];
 function standingItems(){return STANDING.map(function(b){return {p:{id:b.id,name:b.name,deadline:null,status:"active",standing:true},s:{code:b.id,name:b.name,deadline:null},myHours:0,standing:true};});}
 function personOptions(sel){return PEOPLE.filter(function(p){return p.inProjects||p.name===sel;}).map(function(p){return '<option value="'+esc(p.name)+'"'+(p.name===sel?" selected":"")+'>'+esc(p.name)+'</option>';}).join("");}
 function skyriusOptions(sel){return '<option value="">— pasirink dalį —</option>'+SKYRIAI.map(function(s){return '<option value="'+esc(s.code)+'"'+(s.code===sel?" selected":"")+'>'+esc(s.code)+' — '+esc(s.name)+'</option>';}).join("");}
