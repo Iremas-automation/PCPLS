@@ -99,9 +99,12 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .ro-n{font-size:26px;font-weight:700;color:var(--blue-deep);}.ro-sep{font-size:18px;color:var(--steel-300);}.ro-e{font-size:18px;color:var(--steel-500);}
 .ro-foot{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12px;color:var(--steel-500);margin-top:9px;}.ro-foot.neg{color:var(--red);font-weight:700;}
 .section{margin-bottom:22px;}.sec-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
-.mysum-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel);}
+.mysum-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--panel);scrollbar-width:thin;}
+.mysum-wrap::-webkit-scrollbar{height:9px;}
+.mysum-wrap::-webkit-scrollbar-thumb{background:var(--steel-300);border-radius:5px;}
 .mysum-tbl{border-collapse:collapse;width:100%;font-size:12.5px;}
-.mysum-tbl td{border:1px solid var(--line);padding:9px 16px;text-align:center;white-space:nowrap;}
+.mysum-tbl td{border:1px solid var(--line);padding:8px 12px;text-align:center;white-space:nowrap;min-width:62px;}
+.mysum-tbl td.rlabel{min-width:0;}
 .mysum-tbl tr:first-child td{border-top:none;}
 .mysum-tbl td:first-child{border-left:none;}
 .mysum-tbl td:last-child{border-right:none;}
@@ -791,6 +794,7 @@ function viewMine(){
   var cols=items.map(function(it){var pl=it.myHours||0,sp=myStageSpent(it.p.id,it.s.code),lk=pl-sp;
     var dl=it.s.deadline||it.p.deadline;var d=dl?daysBetween(today,dl):null;var tone=d===null?"grey":d<0?"red":d<=7?"amber":"green";
     return {it:it,pl:pl,sp:sp,lk:lk,dl:dl,tone:tone};});
+  cols.sort(function(a,b){return new Date(a.dl||"2100-01-01")-new Date(b.dl||"2100-01-01");});
   var r1='<tr><td class="rlabel">Projektas</td>'+cols.map(function(c){var sub=(multiPart[c.it.p.id]>1)?'<div class="psub">'+esc(c.it.s.name)+'</div>':'';return '<td class="phead">'+esc(c.it.p.id)+sub+'</td>';}).join('')+'</tr>';
   var r2='<tr><td class="rlabel">Terminas</td>'+cols.map(function(c){return '<td class="tm-'+c.tone+'">'+(c.dl?fmtLT(c.dl):"—")+'</td>';}).join('')+'</tr>';
   var r3='<tr><td class="rlabel">Suplanuotos d.</td>'+cols.map(function(c){return '<td>'+nfD(c.pl)+'</td>';}).join('')+'</tr>';
