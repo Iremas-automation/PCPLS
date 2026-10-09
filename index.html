@@ -594,8 +594,11 @@ function myStageSpent(pid,code){return state.regs.reduce(function(a,r){return a+
 var STANDING=[{id:"IKISUTART",name:"Iki sutartiniai darbai"},{id:"KITA",name:"Kita (poliklinika, kava ir pan.)"}];
 function standingItems(){return STANDING.map(function(b){return {p:{id:b.id,name:b.name,deadline:null,status:"active",standing:true},s:{code:b.id,name:b.name,deadline:null},myHours:0,standing:true};});}
 /* rankiniu būdu įvesti / jau pildyti projektai, kurių žmogui sistema nepriskyrė (pereinamuoju laikotarpiu, grįžtamosios pastabos ir pan.) */
-function extraItems(covered){var out=[],seen={};
-  function add(pid,code){var k=pid+"||"+code;if(covered[k]||seen[k])return;seen[k]=1;var pr=projById(pid);
+function hiddenKey(){return "pc_hidden_"+((state.meEmail||"").toLowerCase());}
+function loadHidden(){try{return JSON.parse(localStorage.getItem(hiddenKey())||"[]");}catch(e){return [];}}
+function saveHidden(arr){try{localStorage.setItem(hiddenKey(),JSON.stringify(arr));}catch(e){}}
+function extraItems(covered){var out=[],seen={},hidden=loadHidden();
+  function add(pid,code){if(hidden.indexOf(pid)>=0)return;var k=pid+"||"+code;if(covered[k]||seen[k])return;seen[k]=1;var pr=projById(pid);
     out.push({p:{id:pid,name:pr?pr.name:"",deadline:pr?pr.deadline:null,status:"active",extra:true,inSystem:!!pr},s:{code:code,name:(code&&code!=="-")?code:"Darbas",deadline:null},myHours:0,extra:true});}
   (state.myExtra||[]).forEach(function(e){add(e.pid,e.code||"-");});
   state.regs.forEach(function(r){if(r.who===state.me)add(r.pid,r.code);});
@@ -771,7 +774,7 @@ function viewMine(){
     var hdr=p.standing
       ? '<div class="grouphdr" style="opacity:.92"><span class="gh-nr" style="background:var(--steel-500)">BENDRA</span> '+esc(p.name)+'</div>'
       : p.extra
-        ? '<div class="grouphdr"><span class="gh-nr" style="background:var(--steel-500)">Nr. '+esc(p.id)+'</span> '+(p.inSystem?esc(p.name):'<span class="muted" style="font-weight:600">rankinis įvedimas</span>')+'<span class="tk-del" data-act="delmyproj" data-pid="'+esc(p.id)+'" title="Pašalinti iš mano lentelės" style="margin-left:8px">'+IC.trash+'</span></div>'
+        ? '<div class="grouphdr"><span class="gh-nr" style="background:var(--steel-500)">Nr. '+esc(p.id)+'</span> '+(p.inSystem?esc(p.name):'<span class="muted" style="font-weight:600">rankinis įvedimas</span>')+'<span class="tk-del" data-act="delmyproj" data-pid="'+esc(p.id)+'" title="Pašalinti iš lentelės (įvestos valandos lieka)" style="margin-left:8px">'+IC.trash+'</span></div>'
         : '<div class="grouphdr"><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+dch+'</div>';
     var body=byProj[p.id].map(function(it){
       var pdl=(it.p.standing||it.p.extra)?null:(it.s.deadline||it.p.deadline);
@@ -1298,8 +1301,8 @@ document.addEventListener("click",function(e){
   else if(a==="tsnext"){state.tsOff++;render();}
   else if(a==="tsnow"){state.tsOff=0;render();}
   else if(a==="addmyproj"){state.modal={type:"projentry"};render();}
-  else if(a==="savemyproj"){var nr=(val("mp-nr")||"").trim();var code=(val("mp-code")||"").trim()||"-";if(!nr){alert("Įvesk projekto Nr.");return;}state.myExtra=(state.myExtra||[]);if(!state.myExtra.some(function(e){return e.pid===nr&&(e.code||"-")===code;}))state.myExtra.push({pid:nr,code:code});state.modal=null;render();}
-  else if(a==="delmyproj"){var dp=el.getAttribute("data-pid");state.myExtra=(state.myExtra||[]).filter(function(e){return e.pid!==dp;});render();}
+  else if(a==="savemyproj"){var nr=(val("mp-nr")||"").trim();var code=(val("mp-code")||"").trim()||"-";if(!nr){alert("Įvesk projekto Nr.");return;}state.myExtra=(state.myExtra||[]);if(!state.myExtra.some(function(e){return e.pid===nr&&(e.code||"-")===code;}))state.myExtra.push({pid:nr,code:code});var hs=loadHidden();var hi=hs.indexOf(nr);if(hi>=0){hs.splice(hi,1);saveHidden(hs);}state.modal=null;render();}
+  else if(a==="delmyproj"){var dp=el.getAttribute("data-pid");state.myExtra=(state.myExtra||[]).filter(function(e){return e.pid!==dp;});var hd=loadHidden();if(hd.indexOf(dp)<0){hd.push(dp);saveHidden(hd);}render();}
   else if(a==="addtask"){state.modal={type:"task"};render();}
   else if(a==="deltask"){delTask(el.getAttribute("data-sp"));}
   else if(a==="savetask"){saveTask();}
