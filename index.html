@@ -99,6 +99,18 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .ro-n{font-size:26px;font-weight:700;color:var(--blue-deep);}.ro-sep{font-size:18px;color:var(--steel-300);}.ro-e{font-size:18px;color:var(--steel-500);}
 .ro-foot{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12px;color:var(--steel-500);margin-top:9px;}.ro-foot.neg{color:var(--red);font-weight:700;}
 .section{margin-bottom:22px;}.sec-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.mysum-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+.myc{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:9px;padding:13px 15px;display:flex;flex-direction:column;gap:9px;}
+.myc-hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:13px;line-height:1.3;}
+.myc-pt{border-top:1px solid var(--line);padding-top:8px;}
+.myc-pt-nm{font-weight:600;font-size:12.5px;margin-bottom:6px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.myc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.myc-st{background:var(--paper);border-radius:5px;padding:5px 6px;text-align:center;}
+.myc-st b{display:block;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--blue-deep);line-height:1.15;}
+.myc-st.neg b{color:var(--red);}
+.myc-st span{font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--steel-500);font-weight:600;}
+.myc-tot{margin-top:auto;border-top:1px solid var(--line);padding-top:8px;display:flex;justify-content:space-between;align-items:center;font-size:11.5px;color:var(--steel-500);}
+.myc-tot b{font-family:var(--mono);color:var(--ink);font-size:12.5px;}
 .tasks{display:flex;flex-direction:column;gap:7px;}
 .task{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;border-left:3px solid var(--blue);}
 .task .tk-txt{font-size:13px;font-weight:600;flex:1;}.task .tk-due{font-family:var(--mono);font-size:12px;}
@@ -772,16 +784,18 @@ function viewMine(){
   var myTasksSection=myTasks.length?('<div class="section" style="margin-top:24px"><div class="sec-bar"><span class="eyebrow">Mano užduotys</span></div><div class="tasks">'+myTasks.map(function(x){var tk=x.tk;var d=tk.due?daysBetween(today,tk.due):999,tone=tk.done?"grey":(d<0?"red":d<=7?"amber":"green");return '<div class="task'+(tk.done?" done":"")+'"><span class="tk-done-btn" data-act="taskdone" data-sp="'+esc(tk.spId||"")+'" title="'+(tk.done?"Atgal į vykdomas":"Užbaigti")+'">'+IC.check+'</span><span class="tk-txt"><span class="gh-nr" style="font-family:var(--mono);color:#fff;background:var(--blue);padding:1px 6px;border-radius:3px;font-size:11px">Nr. '+esc(x.p.id)+'</span> '+esc(tk.text)+'</span><span class="tk-due dl dl-'+tone+'">'+(tk.done?"atlikta":"iki "+fmtLT(tk.due))+'</span></div>';}).join("")+'</div></div>'):'';
   // mano projektų suvestinė: po eilutę kiekvienai MANO daliai (sava suplanuota/sugaišta/likutis ir SAVAS terminas), sugrupuota pagal projektą
   var myByProj={},myOrder=[];items.forEach(function(it){if(!myByProj[it.p.id]){myByProj[it.p.id]=[];myOrder.push(it.p);}myByProj[it.p.id].push(it);});
-  var sumRows=myOrder.map(function(p){
+  var sumCards=myOrder.map(function(p){
     var tpl=0,tsp=0;myByProj[p.id].forEach(function(it){tpl+=(it.myHours||0);tsp+=myStageSpent(it.p.id,it.s.code);});
-    var hdr='<div class="grp-sub" style="display:flex;justify-content:space-between"><span><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+'</span><span style="text-transform:none;letter-spacing:0;font-weight:600">iš viso: '+nfD(tpl)+' / '+nfD(tsp)+' d.</span></div>';
-    var rows=myByProj[p.id].map(function(it){var pl=it.myHours||0,sp=myStageSpent(it.p.id,it.s.code),lk=pl-sp;
+    var dch=p.deadline?(function(){var n=daysBetween(today,p.deadline);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'" style="margin-left:auto">iki '+fmtLT(p.deadline)+'</span>';})():'';
+    var parts=myByProj[p.id].map(function(it){var pl=it.myHours||0,sp=myStageSpent(it.p.id,it.s.code),lk=pl-sp;
       var dl=it.s.deadline||it.p.deadline;var d=dl?daysBetween(today,dl):null;var dtone=d===null?"grey":d<0?"red":d<=7?"amber":"green";
-      return '<div class="gr row mysum"><span style="font-weight:600;font-size:12.5px;padding-left:6px">'+esc(it.s.name)+'</span>'+
-        '<span class="r mono">'+nfD(pl)+'</span><span class="r mono">'+nfD(sp)+'</span><span class="r mono '+(lk<0?"neg":"")+'">'+nfD(lk)+'</span>'+
-        '<span class="r"><span class="dl dl-'+dtone+'">'+(dl?fmtLT(dl):"—")+'</span></span></div>';}).join("");
-    return hdr+rows;}).join("");
-  var sumTable=items.length?'<div class="section"><div class="sec-bar"><span class="eyebrow">Mano projektai — atlikimas</span></div><div class="ptblwrap"><div class="gtbl"><div class="gr th mysum"><span>Projekto dalis</span><span class="r">Suplanuota, d.</span><span class="r">Sugaišta, d.</span><span class="r">Liko, d.</span><span class="r">Terminas</span></div>'+sumRows+'</div></div></div>':'';
+      return '<div class="myc-pt"><div class="myc-pt-nm">'+esc(it.s.name)+(dl?'<span class="dl dl-'+dtone+'" style="margin-left:auto">'+fmtLT(dl)+'</span>':'')+'</div>'+
+        '<div class="myc-stats"><div class="myc-st"><b>'+nfD(pl)+'</b><span>Supl., d.</span></div>'+
+        '<div class="myc-st"><b>'+nfD(sp)+'</b><span>Sugaišta</span></div>'+
+        '<div class="myc-st'+(lk<0?" neg":"")+'"><b>'+nfD(lk)+'</b><span>Liko</span></div></div></div>';}).join("");
+    var tot=myByProj[p.id].length>1?'<div class="myc-tot"><span>Iš viso</span><b>'+nfD(tpl)+' / '+nfD(tsp)+' d.</b></div>':'';
+    return '<div class="myc"><div class="myc-hd"><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+dch+'</div>'+parts+tot+'</div>';}).join("");
+  var sumTable=items.length?'<div class="section"><div class="sec-bar"><span class="eyebrow">Mano projektai — atlikimas</span></div><div class="mysum-grid">'+sumCards+'</div></div>':'';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()])+'</span><h1>Mano projektai</h1></div></div>'+
     sumTable+
     '<div class="sec-bar" style="margin-top:20px"><span class="eyebrow">Mano valandos — spausk langelį įvesti ar pasitaisyti</span><span style="display:flex;gap:8px;align-items:center;margin-left:auto"><button class="btn sm" data-act="addmyproj">'+IC.plus+' Įvesti projekto Nr.</button>'+monthNav+'</span></div>'+grid+
