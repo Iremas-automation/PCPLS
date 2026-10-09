@@ -1302,7 +1302,7 @@ document.addEventListener("click",function(e){
   else if(a==="tsnow"){state.tsOff=0;render();}
   else if(a==="addmyproj"){state.modal={type:"projentry"};render();}
   else if(a==="savemyproj"){var nr=(val("mp-nr")||"").trim();var code=(val("mp-code")||"").trim()||"-";if(!nr){alert("Įvesk projekto Nr.");return;}state.myExtra=(state.myExtra||[]);if(!state.myExtra.some(function(e){return e.pid===nr&&(e.code||"-")===code;}))state.myExtra.push({pid:nr,code:code});var hs=loadHidden();var hi=hs.indexOf(nr);if(hi>=0){hs.splice(hi,1);saveHidden(hs);}state.modal=null;render();}
-  else if(a==="delmyproj"){var dp=el.getAttribute("data-pid");state.myExtra=(state.myExtra||[]).filter(function(e){return e.pid!==dp;});var hd=loadHidden();if(hd.indexOf(dp)<0){hd.push(dp);saveHidden(hd);}render();}
+  else if(a==="delmyproj"){var dp=el.getAttribute("data-pid");if(!confirm("Pašalinti projektą „"+dp+"\" iš lentelės? Įvestos valandos bus išsaugotos."))return;state.myExtra=(state.myExtra||[]).filter(function(e){return e.pid!==dp;});var hd=loadHidden();if(hd.indexOf(dp)<0){hd.push(dp);saveHidden(hd);}render();}
   else if(a==="addtask"){state.modal={type:"task"};render();}
   else if(a==="deltask"){delTask(el.getAttribute("data-sp"));}
   else if(a==="savetask"){saveTask();}
