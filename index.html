@@ -938,13 +938,21 @@ function viewStats(){
     (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div>'):'';
   var perProj="";
   if(state.fUser!=="all"){
-    var byP={},byPO={},kPid={},kCode={},kDays={},ordP=[];FR.forEach(function(r){var k=r.pid+"||"+(r.code||"-");if(byP[k]==null){byP[k]=0;byPO[k]=0;kPid[k]=r.pid;kCode[k]=r.code||"-";kDays[k]=[];ordP.push(k);}byP[k]+=r.hours;byPO[k]+=(r.ot||0);kDays[k].push({date:r.date,hours:r.hours,ot:r.ot||0});});
-    ordP.sort(function(a,b){return byP[b]-byP[a];});
-    var rowsP=ordP.map(function(k){var pid=kPid[k],code=kCode[k],pr=projById(pid);
-      var nm=pid==="IKISUTART"?'<span class="muted" style="font-weight:600">Ikisutartiniai darbai</span>':pid==="KITA"?'<span class="muted" style="font-weight:600">Kita (poliklinika, kava ir pan.)</span>':pr?('<span class="gh-nr">Nr. '+esc(pid)+'</span> '+esc(pr.name)+' · <b>'+esc(skyriusName(code))+'</b>'):('<span class="gh-nr" style="background:var(--steel-500)">'+esc(pid)+'</span> <span class="muted">rankinis</span>'+(code&&code!=="-"?' · <b>'+esc(code)+'</b>':''));
-      var dayRows=kDays[k].slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;}).map(function(d){var dt=new Date(d.date);return '<div class="gr row perpday"><span class="dayc">'+fmtLT(d.date)+' <span class="muted">('+WD[dt.getDay()]+')</span></span><span class="r mono">'+nf(d.hours)+' val.</span><span class="r"></span><span class="r mono'+(d.ot>0?" otpill":" muted")+'">'+(d.ot>0?nf(d.ot)+" val.":"—")+'</span></div>';}).join("");
-      return '<div class="gr row perp phrow"><span>'+nm+'</span><span class="r mono">'+nf(byP[k])+' val.</span><span class="r mono muted">'+nfD(byP[k])+' d.</span><span class="r mono'+(byPO[k]>0?" otpill":" muted")+'">'+(byPO[k]>0?nf(byPO[k])+" val.":"—")+'</span></div>'+dayRows;}).join("");
-    perProj=ordP.length?('<div class="panel" style="margin-top:14px"><h2>'+esc(state.fUser)+' — valandos pagal projektą ir dalį</h2><div class="gtbl"><div class="gr th perp"><span>Projektas / dalis</span><span class="r">Valandos</span><span class="r">Dienos</span><span class="r">Viršval.</span></div>'+rowsP+'</div></div>'):'<div class="panel" style="margin-top:14px"><div class="emptybox">Pasirinktu laikotarpiu įrašų nėra.</div></div>';
+    // mėnesio tinklelis (kaip „Mano projektai"): dalys × mėnesio darbo dienos; be tuščių eilučių
+    var mBase=state.fFrom?new Date(Number(state.fFrom.slice(0,4)),Number(state.fFrom.slice(5,7))-1,1):new Date(today.getFullYear(),today.getMonth(),1);
+    var MM=[],dd=new Date(mBase.getFullYear(),mBase.getMonth(),1),mo=dd.getMonth();
+    while(dd.getMonth()===mo){var wd=dd.getDay();if(wd!==0&&wd!==6)MM.push(isoD(dd));dd=addDays(dd,1);}
+    var mLbl=mBase.toLocaleDateString("lt-LT",{year:"numeric",month:"long"});
+    var cH={},cO={},kTot={},kInfo={},kOrd=[];
+    FR.forEach(function(r){if(MM.indexOf(r.date)<0)return;var k=r.pid+"||"+(r.code||"-");if(kTot[k]==null){kTot[k]=0;kInfo[k]={pid:r.pid,code:r.code||"-"};kOrd.push(k);}kTot[k]+=r.hours;cH[k+"|"+r.date]=(cH[k+"|"+r.date]||0)+r.hours;cO[k+"|"+r.date]=(cO[k+"|"+r.date]||0)+(r.ot||0);});
+    kOrd=kOrd.filter(function(k){return kTot[k]>0;}).sort(function(a,b){return kTot[b]-kTot[a];});
+    var gh='<div class="hc head sticky">Projekto dalis</div>';MM.forEach(function(d){var dt=new Date(d),td=d===isoD(today);gh+='<div class="hc head'+(td?" today":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});gh+='<div class="hc head tot">Viso</div>';
+    var grows=kOrd.map(function(k){var pid=kInfo[k].pid,code=kInfo[k].code,pr=projById(pid);
+      var nm=pid==="IKISUTART"?'<b>Ikisutartiniai darbai</b>':pid==="KITA"?'<b>Kita</b>':pr?('<span class="gh-nr">Nr. '+esc(pid)+'</span> <b>'+esc(skyriusName(code))+'</b>'):('<span class="gh-nr" style="background:var(--steel-500)">'+esc(pid)+'</span> <span class="muted">rankinis</span>');
+      var tot=0,cells=MM.map(function(d){var v=cH[k+"|"+d]||0,o=cO[k+"|"+d]||0;tot+=v;return '<div class="hc '+loadClass(v)+(o>0?" otc":"")+'"'+(o>0?' title="iš jų viršvalandžiai: '+nf(o)+' val."':"")+'>'+(v?nf(v):"")+'</div>';}).join("");
+      return '<div class="hc sticky"><span class="hmname">'+nm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';}).join("");
+    var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:230px repeat('+MM.length+', 46px) 60px">'+gh+grows+'</div></div>';
+    perProj=kOrd.length?('<div class="panel" style="margin-top:14px"><h2>'+esc(state.fUser)+' — valandos per '+esc(mLbl)+'</h2>'+grid+'<div class="legend"><span>Rodomos tik dalys, prie kurių tą mėnesį dirbta.</span><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span></div></div>'):'<div class="panel" style="margin-top:14px"><div class="emptybox">Pasirinktą mėnesį įrašų nėra.</div></div>';
   }
   var body=sv==="load"?(kpis+heat+perProj):sv==="byuser"?(kpis+uc+perProj):sv==="ot"?(kpis+otc+perProj):deptSummaryTable();
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+filterBar+'</div>'+seg+body+'</div>';
