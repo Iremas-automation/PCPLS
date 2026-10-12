@@ -210,7 +210,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gr .r{text-align:right;justify-content:flex-end;display:flex;align-items:center;gap:5px;}
 .gr .who{display:flex;align-items:center;gap:8px;font-size:12.5px;}.gr .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .stg{grid-template-columns:minmax(160px,2fr) 230px 88px 84px 82px minmax(110px,1fr);}
-.rev{grid-template-columns:1fr 100px 120px 36px;}.disc{grid-template-columns:minmax(150px,2fr) 100px 100px 100px 110px;}
+.rev{grid-template-columns:1fr 100px 120px 36px;}.disc{grid-template-columns:minmax(150px,2fr) 100px 100px 100px 110px;}.perp{grid-template-columns:1fr 110px 90px;}
 .mysum{grid-template-columns:minmax(160px,2fr) 118px 118px 100px 128px;}
 .grp-sub{padding:7px 14px;background:#EEF2F7;font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;color:var(--steel-500);border-top:1px solid var(--line);}
 .psum{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;}
@@ -437,7 +437,7 @@ var TAB_LT={projektai:"Projektai",mine:"Mano projektai",svwork:"Skyriaus darbai"
 var PEOPLE=[], SKYRIAI=[], PROJECTS=[];
 var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             selId:null, pelId:null, me:null, meEmail:null,
-            fFrom:"", fTo:"", fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, collapsed:{}, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
+            fFrom:isoD(new Date(today.getFullYear(),today.getMonth(),1)), fTo:isoD(new Date(today.getFullYear(),today.getMonth()+1,0)), fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, collapsed:{}, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
 function personByEmail(e){e=(e||"").toLowerCase();return PEOPLE.find(function(p){return (p.email||"").toLowerCase()===e;});}
@@ -917,7 +917,15 @@ function viewStats(){
     '<div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-proj">'+projOpts+'</select></div>'+
     '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
     (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div>'):'';
-  var body=sv==="load"?(kpis+heat):sv==="byuser"?(kpis+uc):deptSummaryTable();
+  var perProj="";
+  if(state.fUser!=="all"){
+    var byP={},ordP=[];FR.forEach(function(r){if(byP[r.pid]==null){byP[r.pid]=0;ordP.push(r.pid);}byP[r.pid]+=r.hours;});
+    ordP.sort(function(a,b){return byP[b]-byP[a];});
+    var rowsP=ordP.map(function(pid){var pr=projById(pid);var nm=pr?('<span class="gh-nr">Nr. '+esc(pid)+'</span> '+esc(pr.name)):(pid==="IKISUTART"?'<span class="muted" style="font-weight:600">Ikisutartiniai darbai</span>':pid==="KITA"?'<span class="muted" style="font-weight:600">Kita (poliklinika, kava ir pan.)</span>':'<span class="gh-nr" style="background:var(--steel-500)">'+esc(pid)+'</span> <span class="muted">rankinis</span>');
+      return '<div class="gr row perp"><span>'+nm+'</span><span class="r mono">'+nf(byP[pid])+' val.</span><span class="r mono muted">'+nfD(byP[pid])+' d.</span></div>';}).join("");
+    perProj=ordP.length?('<div class="panel" style="margin-top:14px"><h2>'+esc(state.fUser)+' — valandos pagal projektą</h2><div class="gtbl"><div class="gr th perp"><span>Projektas</span><span class="r">Valandos</span><span class="r">Dienos</span></div>'+rowsP+'</div></div>'):'<div class="panel" style="margin-top:14px"><div class="emptybox">Pasirinktu laikotarpiu įrašų nėra.</div></div>';
+  }
+  var body=sv==="load"?(kpis+heat+perProj):sv==="byuser"?(kpis+uc+perProj):deptSummaryTable();
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+filterBar+'</div>'+seg+body+'</div>';
 }
 function val(id){var e=document.getElementById(id);return e?e.value:"";}
@@ -1338,7 +1346,7 @@ document.addEventListener("click",function(e){
   else if(a==="clearcell"){clearCell();}
   else if(a==="setabs"){setAbsence(el.getAttribute("data-date"),el.getAttribute("data-t"));}
   else if(a==="clearabs"){clearAbsence(el.getAttribute("data-date"));}
-  else if(a==="clearfilters"){state.fFrom="";state.fTo="";state.fUser="all";state.fProj="all";render();}
+  else if(a==="clearfilters"){state.fFrom=isoD(new Date(today.getFullYear(),today.getMonth(),1));state.fTo=isoD(new Date(today.getFullYear(),today.getMonth()+1,0));state.fUser="all";state.fProj="all";render();}
   else if(a==="addrev"){state.modal={type:"rev"};render();}
   else if(a==="addsub"){state.modal={type:"sub"};render();}
   else if(a==="saverev"){saveRevSub(true);}
