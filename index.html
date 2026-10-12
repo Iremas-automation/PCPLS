@@ -949,7 +949,7 @@ function viewStats(){
     kOrd=kOrd.filter(function(k){return kTot[k]>0;}).sort(function(a,b){return kTot[b]-kTot[a];});
     var gh='<div class="hc head sticky">Projekto dalis</div>';MM.forEach(function(d){var dt=new Date(d),td=d===isoD(today);gh+='<div class="hc head'+(td?" today":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});gh+='<div class="hc head tot">Viso</div>';
     var grows=kOrd.map(function(k){var pid=kInfo[k].pid,code=kInfo[k].code,pr=projById(pid);
-      var nm=pid==="IKISUTART"?'<b>Ikisutartiniai darbai</b>':pid==="KITA"?'<b>Kita</b>':pr?('<span class="gh-nr">Nr. '+esc(pid)+'</span> <b>'+esc(skyriusName(code))+'</b>'):('<span class="gh-nr" style="background:var(--steel-500)">'+esc(pid)+'</span> <span class="muted">rankinis</span>');
+      var nm=pid==="IKISUTART"?'<b>Ikisutartiniai darbai</b>':pid==="KITA"?'<b>Kita</b>':pr?('<span class="gh-nr">Nr. '+esc(pid)+'</span> <b>'+esc(skyriusName(code))+'</b>'):('<span class="gh-nr" style="background:var(--steel-500)">'+esc(pid)+'</span> '+((code&&code!=="-")?'<b>'+esc(skyriusName(code))+'</b>':'<span class="muted">rankinis</span>'));
       var tot=0,cells=MM.map(function(d){var v=cH[k+"|"+d]||0,o=cO[k+"|"+d]||0;tot+=v;return '<div class="hc '+loadClass(v)+(o>0?" otc":"")+'"'+(v>0?' title="'+otTip(v,o)+'"':"")+'>'+(v?nf(v):"")+'</div>';}).join("");
       return '<div class="hc sticky"><span class="hmname">'+nm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';}).join("");
     var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:230px repeat('+MM.length+', 46px) 60px">'+gh+grows+'</div></div>';
