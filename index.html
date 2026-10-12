@@ -198,6 +198,17 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .trm{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;margin-left:4px;}
 .trm-a{background:rgba(46,139,87,.16);color:#217a4a;}
 .trm-b{background:rgba(30,94,140,.16);color:#1a4a6b;}
+.gantt{border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;}
+.grow2{display:grid;grid-template-columns:200px 1fr;border-top:1px solid var(--line);min-height:46px;align-items:stretch;}
+.grow2:first-child{border-top:none;}
+.gname{padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;position:sticky;left:0;background:var(--panel);border-right:1px solid var(--line);}
+.gtrack{position:relative;margin:0 14px;min-height:46px;}
+.gbar{position:absolute;top:50%;transform:translateY(-50%);height:22px;border-radius:6px;display:flex;align-items:center;padding:0 7px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.18);cursor:default;}
+.gbar.green{background:var(--green);}.gbar.amber{background:var(--amber);}.gbar.red{background:var(--red);}
+.gtoday{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);opacity:.7;}
+.gaxis{display:grid;grid-template-columns:200px 1fr;border-top:1px solid var(--line);background:#F7F9FA;}
+.gticks{position:relative;height:24px;margin:0 14px;}
+.gtick{position:absolute;top:5px;font-size:9.5px;color:var(--steel-500);transform:translateX(-50%);font-family:var(--mono);white-space:nowrap;}
 .asg-x{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--steel-200);color:var(--steel-600);font-size:13px;line-height:1;cursor:pointer;}
 .asg-x:hover{background:var(--red);color:#fff;}
 .tabchips{display:flex;gap:3px;flex-wrap:wrap;}
@@ -918,9 +929,36 @@ function viewSvWork(){
       '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span>'+
       '<span class="r"><span class="pill '+wkTone+'">'+wkPct+'%</span></span></div>';
   }).join("");
-  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>'+
-    '<div class="section" style="margin-top:22px"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(subRows||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div></div>';
+  // 3) Pavaldinių grafikas (Gantt pagal priskirtus terminus)
+  var gBySub={};subs.forEach(function(sub){gBySub[sub.email]=[];});var gAny=0;
+  PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){
+    if(codes.indexOf(s.code)<0)return;(s.pris||[]).forEach(function(p){if(gBySub[p.email]!=null){gBySub[p.email].push({pr:pr,s:s,start:p.start,end:p.end,hours:p.hours});if(p.start||p.end)gAny++;}});});});
+  var ganttHtml;
+  if(!gAny){ganttHtml='<div class="empty">Dar nėra priskirtų terminų. Priskirk darbą nurodydamas termino pradžią/pabaigą — jie atsiras grafike.</div>';}
+  else{
+    var ds=[];subs.forEach(function(sub){(gBySub[sub.email]||[]).forEach(function(it){if(it.start)ds.push(it.start);if(it.end)ds.push(it.end);});});ds.sort();
+    var minDt=addDays(new Date(ds[0]+"T00:00:00"),-2),maxDt=addDays(new Date(ds[ds.length-1]+"T00:00:00"),2);
+    var span=Math.max(1,daysBetween(minDt,maxDt));
+    function pct(dstr){return (daysBetween(minDt,new Date(dstr+"T00:00:00"))/span)*100;}
+    var tp=pct(isoD(today)),todayLine=(tp>=0&&tp<=100)?'<div class="gtoday" style="left:'+tp+'%"></div>':'';
+    var grows=subs.map(function(sub){var its=gBySub[sub.email]||[];
+      var bars=its.filter(function(it){return it.start||it.end;}).map(function(it){var s=it.start||it.end,e=it.end||it.start;
+        var left=Math.max(0,pct(s)),w=Math.max(2,pct(e)-pct(s));var n=daysBetween(today,new Date(e+"T00:00:00"));var tone=n<0?"red":n<=7?"amber":"green";
+        var tip="Nr. "+esc(it.pr.id)+" — "+esc(it.s.name)+" · "+(it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")+" · "+nfD(it.hours)+" d.";
+        return '<div class="gbar '+tone+'" style="left:'+left+'%;width:'+w+'%" title="'+tip+'">'+esc(it.pr.id)+" · "+esc(it.s.name)+'</div>';}).join("");
+      var nt=its.filter(function(it){return !it.start&&!it.end;}).length;var ntNote=nt?'<span class="muted" style="font-size:10px;margin-left:4px">+'+nt+' be termino</span>':'';
+      return '<div class="grow2"><div class="gname">'+avatar(sub.name)+'<span>'+esc(sub.name)+'</span>'+ntNote+'</div><div class="gtrack">'+todayLine+(bars||'<span class="muted" style="font-size:11px;position:absolute;top:50%;left:0;transform:translateY(-50%)">—</span>')+'</div></div>';}).join("");
+    var ticks="",N=5;for(var i=0;i<=N;i++){ticks+='<div class="gtick" style="left:'+(i/N*100)+'%">'+fmtLT(isoD(addDays(minDt,Math.round(span*i/N))))+'</div>';}
+    ganttHtml='<div class="gantt">'+grows+'<div class="gaxis"><div></div><div class="gticks">'+ticks+'</div></div></div>';
+  }
+  var svv=state.svView||"assign";
+  var segs=[["assign","Projekto paskyrimas"],["schedule","Pavaldinių grafikas"],["load","Pavaldinių užimtumas"]];
+  var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
+  var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>';
+  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(subRows||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
+  var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span></div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
+  var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
+  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+seg+svBody+'</div>';
 }
 function viewStats(){
   var STAT=PEOPLE.filter(function(p){return p.inStats;});
@@ -1362,6 +1400,7 @@ document.addEventListener("click",function(e){
   else if(a==="togglesort"){state.sortBy=(state.sortBy==="deadline"?"pv":state.sortBy==="pv"?"nr":"deadline");render();}
   else if(a==="togglegroup"){var gk=el.getAttribute("data-g");state.collapsed[gk]=!state.collapsed[gk];render();}
   else if(a==="statview"){state.statView=el.getAttribute("data-v");render();}
+  else if(a==="svview"){state.svView=el.getAttribute("data-v");render();}
   else if(a==="tsprev"){state.tsOff--;render();}
   else if(a==="tsnext"){state.tsOff++;render();}
   else if(a==="tsnow"){state.tsOff=0;render();}
