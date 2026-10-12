@@ -185,7 +185,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .stg-edit{color:var(--steel-400);cursor:pointer;display:inline-grid;place-items:center;margin-left:6px;vertical-align:-3px;}.stg-edit:hover{color:var(--blue);}
 .adm{grid-template-columns:minmax(150px,1.5fr) minmax(170px,1.6fr) 120px 78px 82px 150px 62px;}
 .team2{grid-template-columns:80px 1.6fr 1.4fr 90px 46px;}
-.svsub{grid-template-columns:minmax(150px,2fr) 70px 150px 95px 95px 110px;}
+.svsub{grid-template-columns:minmax(150px,2fr) 70px 95px 95px 110px;}
 .svpart{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:10px;background:var(--panel);}
 .svp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
 .svp-top .gh-nr{font-family:var(--mono);color:#fff;background:var(--blue);padding:2px 7px;border-radius:4px;font-size:11px;}
@@ -926,12 +926,10 @@ function viewSvWork(){
     var ap=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){if(s.code!==code)return;(s.pris||[]).forEach(function(p){if(p.email===sub.email)ap.push({pr:pr,s:s,h:p.hours||0});});});});
     var nP=ap.length,planH=ap.reduce(function(a,x){return a+x.h;},0);
     var logH=state.regs.reduce(function(a,r){return a+((r.who===sub.name&&r.code===code)?r.hours:0);},0);
-    var nearest=null;ap.forEach(function(x){var dd=x.s.deadline||x.pr.deadline;if(dd&&(!nearest||new Date(dd)<new Date(nearest)))nearest=dd;});
-    var ndch=nearest?(function(){var n=daysBetween(today,nearest);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'">iki '+fmtLT(nearest)+'</span>';})():'<span class="muted" style="font-size:12px">—</span>';
     var wkH=WB.slice(0,5).reduce(function(a,d){return a+state.regs.reduce(function(b,r){return b+((r.whoEmail===sub.email&&r.date===d&&r.code===code)?r.hours:0);},0);},0);
     var wkPct=Math.round(wkH/(5*CAP)*100),wkTone=wkPct>100?"red":wkPct>=85?"amber":"green";
     return '<div class="gr row svsub"><span class="who">'+avatar(sub.name)+'<span style="font-weight:600">'+esc(sub.name)+'</span></span>'+
-      '<span class="r mono">'+nP+'</span><span>'+ndch+'</span>'+
+      '<span class="r mono">'+nP+'</span>'+
       '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span>'+
       '<span class="r"><span class="pill '+wkTone+'">'+wkPct+'%</span></span></div>';
   }
@@ -970,7 +968,7 @@ function viewSvWork(){
   var segs=[["assign","Projekto paskyrimas"],["schedule","Pavaldinių grafikas"],["load","Pavaldinių užimtumas"]];
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
   var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>';
-  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span>Artim. terminas</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
+  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
   var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span></div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+seg+svBody+'</div>';
