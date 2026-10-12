@@ -813,7 +813,7 @@ function viewMine(){
     }).join("");
     return hdr+body;
   }).join("");
-  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:300px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>';
+  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:400px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>';
   var monthNav='<div class="monthnav"><button class="btn sm" data-act="tsprev">‹</button><span class="mlabel">'+esc(monthLabelOf(state.tsOff))+'</span><button class="btn sm" data-act="tsnext">›</button>'+(state.tsOff!==0?'<button class="btn sm" data-act="tsnow">Šis mėnuo</button>':'')+'</div>';
   var myTasks=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){(p.tasks||[]).forEach(function(tk){if(tk.assignee&&tk.assignee===state.meEmail)myTasks.push({p:p,tk:tk});});});
   myTasks.sort(function(a,b){return (a.tk.done?1:0)-(b.tk.done?1:0)||new Date(a.tk.due||"2100")-new Date(b.tk.due||"2100");});
