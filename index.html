@@ -195,6 +195,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .asg:hover{border-color:var(--blue);}
 .asg b{font-family:var(--mono);color:var(--blue-deep);}
 .asg-dt{font-family:var(--mono);font-size:10.5px;color:#fff;background:var(--blue);padding:2px 6px;border-radius:10px;white-space:nowrap;}
+.trm{display:inline-flex;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;white-space:nowrap;margin-left:4px;}
+.trm-a{background:rgba(46,139,87,.16);color:#217a4a;}
+.trm-b{background:rgba(30,94,140,.16);color:#1a4a6b;}
 .asg-x{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--steel-200);color:var(--steel-600);font-size:13px;line-height:1;cursor:pointer;}
 .asg-x:hover{background:var(--red);color:#fff;}
 .tabchips{display:flex;gap:3px;flex-wrap:wrap;}
@@ -606,6 +609,7 @@ function myStages(){var seen={};var meE=(state.meEmail||"").trim().toLowerCase()
 function myDayHours(pid,code,date){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code&&r.date===date)?r.hours:0);},0);}
 function myDayOT(pid,code,date){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code&&r.date===date)?(r.ot||0):0);},0);}
 function otTip(v,o){return o>0?("Įprastos "+nf(v-o)+" val. + viršvalandžiai "+nf(o)+" val. = "+nf(v)+" val."):(nf(v)+" val.");}
+function termBubbles(start,end){var o="";if(start)o+='<span class="trm trm-a" title="Darbų pradžia">nuo '+fmtLT(start)+'</span>';if(end)o+='<span class="trm trm-b" title="Darbų pabaiga">iki '+fmtLT(end)+'</span>';return o;}
 function myStageSpent(pid,code){return state.regs.reduce(function(a,r){return a+((r.who===state.me&&r.pid===pid&&r.code===code)?r.hours:0);},0);}
 /* nuolatiniai (visiems „kabantys") bendri laukai valandoms vesti — ne realūs projektai */
 var STANDING=[{id:"IKISUTART",name:"Iki sutartiniai darbai"},{id:"KITA",name:"Kita (poliklinika, kava ir pan.)"}];
@@ -800,7 +804,10 @@ function viewMine(){
       var rowDch=it.s.deadline?(function(){var n=daysBetween(today,it.s.deadline);return ' <span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'" style="font-size:9.5px">iki '+fmtLT(it.s.deadline)+'</span>';})():'';
       var lkS=(it.myHours||0)-myStageSpent(it.p.id,it.s.code);
       var rowLk=' <span class="ghliko'+(lkS<0?" neg":"")+'" style="margin-left:6px;font-size:9.5px">liko '+nfD(lkS)+' d.</span>';
-      return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+rowDch+rowLk+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
+      var meLc=(state.meEmail||"").trim().toLowerCase();
+      var myPr=(it.s.pris||[]).find(function(pr){return (pr.email||"").trim().toLowerCase()===meLc||pr.name===state.me;});
+      var rowTerm=(myPr&&(myPr.start||myPr.end))?termBubbles(myPr.start,myPr.end):'';
+      return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+rowDch+rowLk+rowTerm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
     }).join("");
     return hdr+body;
   }).join("");
@@ -884,7 +891,7 @@ function viewSvWork(){
     var rows=col?'':byP[pr.id].map(function(s){
       var planH=stagePlanned(s),distH=(s.pris||[]).reduce(function(a,p){return a+(p.hours||0);},0);
       var dch=s.deadline?(function(){var n=daysBetween(today,s.deadline);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'">iki '+fmtLT(s.deadline)+'</span>';})():'<span class="muted" style="font-size:12px">—</span>';
-      var chips=(s.pris||[]).length?(s.pris.map(function(p){var dtr=(p.start||p.end)?'<span class="asg-dt" title="Terminas">'+(p.start?fmtLT(p.start):"?")+'–'+(p.end?fmtLT(p.end):"?")+'</span>':'';return '<span class="asg" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'" data-email="'+esc(p.email)+'" title="Keisti priskyrimą">'+avatar(p.name)+'<span>'+esc(p.name)+'</span><b>'+nfD(p.hours)+' d.</b>'+dtr+'<span class="asg-x" data-act="unassign" data-sp="'+esc(p.spId||"")+'" title="Pašalinti">×</span></span>';}).join("")):'<span class="muted" style="font-size:12px">dar nepaskirta</span>';
+      var chips=(s.pris||[]).length?(s.pris.map(function(p){return '<span class="asg" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'" data-email="'+esc(p.email)+'" title="Keisti priskyrimą">'+avatar(p.name)+'<span>'+esc(p.name)+'</span><b>'+nfD(p.hours)+' d.</b>'+termBubbles(p.start,p.end)+'<span class="asg-x" data-act="unassign" data-sp="'+esc(p.spId||"")+'" title="Pašalinti">×</span></span>';}).join("")):'<span class="muted" style="font-size:12px">dar nepaskirta</span>';
       return '<div class="prow svwrow"><span style="font-weight:600">'+esc(s.name)+'</span><span>'+dch+'</span><span class="r mono">'+nfD(planH)+' d.</span><span class="r mono '+(distH>planH?"neg":"")+'">'+nfD(distH)+' d.</span><span class="svw-asg">'+chips+'<button class="btn sm" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'">'+IC.plus+' Priskirti</button></span></div>';
     }).join("");
     return hdr+rows;
