@@ -798,16 +798,18 @@ function viewMine(){
         ? '<div class="grouphdr"><span class="gh-nr" style="background:var(--steel-500)">Nr. '+esc(p.id)+'</span> '+(p.inSystem?esc(p.name):'<span class="muted" style="font-weight:600">rankinis įvedimas</span>')+'<button class="btn sm finishbtn" data-act="delmyproj" data-pid="'+esc(p.id)+'" title="Įvestos valandos lieka" style="margin-left:auto">Baigti projekto darbus</button></div>'
         : '<div class="grouphdr"><span class="gh-nr">Nr. '+esc(p.id)+'</span> '+esc(p.name)+dch+'</div>';
     var body=byProj[p.id].map(function(it){
-      var pdl=(it.p.standing||it.p.extra)?null:(it.s.deadline||it.p.deadline);
-      var tot=0;var cells=MD.map(function(d){var ab=myAbsence(d);var dcls=dlCellCls(pdl,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);var ov=myDayOT(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(ov>0?" otc":"")+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(v>0?' title="'+otTip(v,ov)+(dcls==="dl-day"?' · dalies terminas '+fmtLT(pdl):'')+'"':dcls==="dl-day"?' title="Dalies terminas — '+fmtLT(pdl)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
+      var meLc=(state.meEmail||"").trim().toLowerCase();
+      var myPr=(it.p.standing||it.p.extra)?null:(it.s.pris||[]).find(function(pr){return (pr.email||"").trim().toLowerCase()===meLc||pr.name===state.me;});
+      var hasTerm=!!(myPr&&(myPr.start||myPr.end));
+      // SV priskirtas terminas (pabaiga) PERRAŠO dalies terminą spalvinimui ir rodymui
+      var pdl=(it.p.standing||it.p.extra)?null:((myPr&&myPr.end)||it.s.deadline||it.p.deadline);
+      var tot=0;var cells=MD.map(function(d){var ab=myAbsence(d);var dcls=dlCellCls(pdl,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);var ov=myDayOT(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(ov>0?" otc":"")+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(v>0?' title="'+otTip(v,ov)+(dcls==="dl-day"?' · terminas '+fmtLT(pdl):'')+'"':dcls==="dl-day"?' title="Terminas — '+fmtLT(pdl)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
       if(it.p.standing||it.p.extra){ return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>'; }
-      var rowDch=it.s.deadline?(function(){var n=daysBetween(today,it.s.deadline);return ' <span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'" style="font-size:9.5px">iki '+fmtLT(it.s.deadline)+'</span>';})():'';
       var lkS=(it.myHours||0)-myStageSpent(it.p.id,it.s.code);
       var rowLk=' <span class="ghliko'+(lkS<0?" neg":"")+'" style="margin-left:6px;font-size:9.5px">liko '+nfD(lkS)+' d.</span>';
-      var meLc=(state.meEmail||"").trim().toLowerCase();
-      var myPr=(it.s.pris||[]).find(function(pr){return (pr.email||"").trim().toLowerCase()===meLc||pr.name===state.me;});
-      var rowTerm=(myPr&&(myPr.start||myPr.end))?termBubbles(myPr.start,myPr.end):'';
-      return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+rowDch+rowLk+rowTerm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
+      // jei SV nurodė terminą — rodom jo burbulus (pakeičia dalies terminą); kitaip — dalies terminą
+      var rowTerm=hasTerm?termBubbles(myPr.start,myPr.end):(it.s.deadline?(function(){var n=daysBetween(today,it.s.deadline);return ' <span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'" style="font-size:9.5px">iki '+fmtLT(it.s.deadline)+'</span>';})():'');
+      return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+rowLk+rowTerm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';
     }).join("");
     return hdr+body;
   }).join("");
