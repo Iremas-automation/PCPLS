@@ -211,6 +211,10 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gr .who{display:flex;align-items:center;gap:8px;font-size:12.5px;}.gr .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .stg{grid-template-columns:minmax(160px,2fr) 230px 88px 84px 82px minmax(110px,1fr);}
 .rev{grid-template-columns:1fr 100px 120px 36px;}.disc{grid-template-columns:minmax(150px,2fr) 100px 100px 100px 110px;}.perp{grid-template-columns:1fr 110px 90px 90px;}
+.gr.row.phrow{font-weight:600;background:#F3F6F8;}
+.gr.row.perpday{min-height:32px;background:var(--panel);}
+.gr.row.perpday .dayc{padding-left:20px;font-size:12px;color:var(--steel-700);font-family:var(--mono);}
+.gr.row.perpday .mono{font-size:12px;}
 .hc.otc{background:rgba(198,93,33,.20)!important;box-shadow:inset 0 0 0 1.6px rgba(198,93,33,.60);color:#7f3912;font-weight:700;}
 .otchk{display:flex;align-items:center;gap:8px;margin:10px 0 2px;font-size:12.5px;font-weight:600;cursor:pointer;}
 .otchk input{width:16px;height:16px;accent-color:var(--ot);cursor:pointer;}
@@ -934,11 +938,12 @@ function viewStats(){
     (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div>'):'';
   var perProj="";
   if(state.fUser!=="all"){
-    var byP={},byPO={},kPid={},kCode={},ordP=[];FR.forEach(function(r){var k=r.pid+"||"+(r.code||"-");if(byP[k]==null){byP[k]=0;byPO[k]=0;kPid[k]=r.pid;kCode[k]=r.code||"-";ordP.push(k);}byP[k]+=r.hours;byPO[k]+=(r.ot||0);});
+    var byP={},byPO={},kPid={},kCode={},kDays={},ordP=[];FR.forEach(function(r){var k=r.pid+"||"+(r.code||"-");if(byP[k]==null){byP[k]=0;byPO[k]=0;kPid[k]=r.pid;kCode[k]=r.code||"-";kDays[k]=[];ordP.push(k);}byP[k]+=r.hours;byPO[k]+=(r.ot||0);kDays[k].push({date:r.date,hours:r.hours,ot:r.ot||0});});
     ordP.sort(function(a,b){return byP[b]-byP[a];});
     var rowsP=ordP.map(function(k){var pid=kPid[k],code=kCode[k],pr=projById(pid);
       var nm=pid==="IKISUTART"?'<span class="muted" style="font-weight:600">Ikisutartiniai darbai</span>':pid==="KITA"?'<span class="muted" style="font-weight:600">Kita (poliklinika, kava ir pan.)</span>':pr?('<span class="gh-nr">Nr. '+esc(pid)+'</span> '+esc(pr.name)+' · <b>'+esc(skyriusName(code))+'</b>'):('<span class="gh-nr" style="background:var(--steel-500)">'+esc(pid)+'</span> <span class="muted">rankinis</span>'+(code&&code!=="-"?' · <b>'+esc(code)+'</b>':''));
-      return '<div class="gr row perp"><span>'+nm+'</span><span class="r mono">'+nf(byP[k])+' val.</span><span class="r mono muted">'+nfD(byP[k])+' d.</span><span class="r mono'+(byPO[k]>0?" otpill":" muted")+'">'+(byPO[k]>0?nf(byPO[k])+" val.":"—")+'</span></div>';}).join("");
+      var dayRows=kDays[k].slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;}).map(function(d){var dt=new Date(d.date);return '<div class="gr row perpday"><span class="dayc">'+fmtLT(d.date)+' <span class="muted">('+WD[dt.getDay()]+')</span></span><span class="r mono">'+nf(d.hours)+' val.</span><span class="r"></span><span class="r mono'+(d.ot>0?" otpill":" muted")+'">'+(d.ot>0?nf(d.ot)+" val.":"—")+'</span></div>';}).join("");
+      return '<div class="gr row perp phrow"><span>'+nm+'</span><span class="r mono">'+nf(byP[k])+' val.</span><span class="r mono muted">'+nfD(byP[k])+' d.</span><span class="r mono'+(byPO[k]>0?" otpill":" muted")+'">'+(byPO[k]>0?nf(byPO[k])+" val.":"—")+'</span></div>'+dayRows;}).join("");
     perProj=ordP.length?('<div class="panel" style="margin-top:14px"><h2>'+esc(state.fUser)+' — valandos pagal projektą ir dalį</h2><div class="gtbl"><div class="gr th perp"><span>Projektas / dalis</span><span class="r">Valandos</span><span class="r">Dienos</span><span class="r">Viršval.</span></div>'+rowsP+'</div></div>'):'<div class="panel" style="margin-top:14px"><div class="emptybox">Pasirinktu laikotarpiu įrašų nėra.</div></div>';
   }
   var body=sv==="load"?(kpis+heat+perProj):sv==="byuser"?(kpis+uc+perProj):sv==="ot"?(kpis+otc+perProj):deptSummaryTable();
