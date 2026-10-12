@@ -972,14 +972,15 @@ function viewAdmin(){
 function viewModal(){
   if(!state.modal)return "";
   var m=state.modal,inner="",wide="";
-  if(m.type==="cell"){var cur=myDayHours(m.pid,m.code,m.date),curOT=myDayOT(m.pid,m.code,m.date),pr=projById(m.pid);var ab=myAbsence(m.date);
+  if(m.type==="cell"){var cur=myDayHours(m.pid,m.code,m.date),curOT=myDayOT(m.pid,m.code,m.date),curNorm=cur-curOT,pr=projById(m.pid);var ab=myAbsence(m.date);
     var absBtns='<div class="field"><span class="eyebrow">Neatvykimas (visai dienai, visuose projektuose)</span><div class="absrow">'+
       ["A","L","K"].map(function(t){return '<button class="absbtn abs-'+t+(ab===t?" on":"")+'" data-act="setabs" data-t="'+t+'" data-date="'+esc(m.date)+'">'+t+' · '+esc(ABS_LT[t])+'</button>';}).join("")+
       (ab?'<button class="absbtn clear" data-act="clearabs" data-date="'+esc(m.date)+'">Darbo diena</button>':'')+'</div></div>';
     var hoursPart=ab?'<p class="sub" style="margin-top:4px">Ši diena pažymėta: <b>'+esc(ABS_LT[ab])+' ('+ab+')</b>. Visuose projektuose laikoma užimta. Valandų įvesti negalima — pirma pažymėk „Darbo diena".</p>'
-      :'<label class="field"><span class="eyebrow">Valandos tą dieną (perrašo)</span><input class="inp" id="cell-h" type="number" min="0" step="0.5" value="'+(cur||"")+'" placeholder="0"></label>'+
-        '<label class="otchk"><input type="checkbox" id="cell-ot"'+(curOT>0?" checked":"")+' onchange="var w=document.getElementById(\'cell-oth-wrap\');w.style.display=this.checked?\'block\':\'none\';if(this.checked){var i=document.getElementById(\'cell-oth\');i.focus();try{i.select();}catch(e){}}"><span>Buvo viršvalandžių</span></label>'+
-        '<div id="cell-oth-wrap" class="otwrap" style="display:'+(curOT>0?"block":"none")+'"><label class="field"><span class="eyebrow">iš jų viršvalandžiai (val.)</span><input class="inp" id="cell-oth" type="number" min="0" step="0.5" value="'+(curOT||"")+'" placeholder="0"></label></div>'+
+      :'<label class="field"><span class="eyebrow">Įprastos valandos tą dieną (perrašo)</span><input class="inp" id="cell-h" type="number" min="0" step="0.5" value="'+(curNorm||"")+'" placeholder="0"></label>'+
+        '<label class="otchk"><input type="checkbox" id="cell-ot"'+(curOT>0?" checked":"")+' onchange="var w=document.getElementById(\'cell-oth-wrap\');w.style.display=this.checked?\'block\':\'none\';if(this.checked){var i=document.getElementById(\'cell-oth\');i.focus();try{i.select();}catch(e){}}"><span>Pridėti viršvalandžius</span></label>'+
+        '<div id="cell-oth-wrap" class="otwrap" style="display:'+(curOT>0?"block":"none")+'"><label class="field"><span class="eyebrow">Viršvalandžiai (val.)</span><input class="inp" id="cell-oth" type="number" min="0" step="0.5" value="'+(curOT||"")+'" placeholder="0"></label></div>'+
+        '<p class="sub" style="margin:2px 0 10px;font-size:11.5px">Bendra suma = įprastos + viršvalandžiai. Gali būti ir vien viršvalandžiai.</p>'+
         '<button class="btn primary wide" data-act="savecell">Išsaugoti</button>'+(cur?'<button class="btn danger wide" data-act="clearcell" style="margin-top:8px">Išvalyti dieną</button>':'');
     inner='<div class="form"><h3>Mano diena</h3><p class="sub">Nr. '+esc(m.pid)+' · '+esc(skyriusName(m.code))+' · '+fmtLT(m.date)+'</p>'+absBtns+hoursPart+'</div>';
   } else if(m.type==="projentry"){
@@ -1118,9 +1119,10 @@ async function withSave(fn){ busy(true); try{ await fn(); }catch(e){ alert("Nepa
 var L=CONFIG.lists;
 
 async function saveCell(){
-  var m=state.modal,h=Number(document.getElementById("cell-h").value)||0;
+  var m=state.modal,norm=Number(document.getElementById("cell-h").value)||0;
   var otEl=document.getElementById("cell-ot"),othEl=document.getElementById("cell-oth");
-  var ot=(otEl&&otEl.checked)?(Number(othEl&&othEl.value)||0):0; if(ot>h)ot=h; if(ot<0)ot=0;
+  var ot=(otEl&&otEl.checked)?(Number(othEl&&othEl.value)||0):0; if(ot<0)ot=0; if(norm<0)norm=0;
+  var h=norm+ot;
   state.modal=null;
   await withSave(async function(){
     var dups=state.regs.filter(function(r){return r.who===state.me&&r.pid===m.pid&&r.code===m.code&&r.date===m.date;});
@@ -1405,7 +1407,7 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
   else if(id==="f-proj"){state.fProj=v;render();}
 });
 document.addEventListener("keydown",function(e){
-  if(e.key==="Enter"&&e.target&&e.target.id==="cell-h"){e.preventDefault();saveCell();}
+  if(e.key==="Enter"&&e.target&&(e.target.id==="cell-h"||e.target.id==="cell-oth")){e.preventDefault();saveCell();}
 });
 
 /* =========================== BOOT / AUTH =========================== */
