@@ -820,8 +820,10 @@ function viewMine(){
   var myTasksSection=myTasks.length?('<div class="section" style="margin-top:24px"><div class="sec-bar"><span class="eyebrow">Mano užduotys</span></div><div class="tasks">'+myTasks.map(function(x){var tk=x.tk;var d=tk.due?daysBetween(today,tk.due):999,tone=tk.done?"grey":(d<0?"red":d<=7?"amber":"green");return '<div class="task'+(tk.done?" done":"")+'"><span class="tk-done-btn" data-act="taskdone" data-sp="'+esc(tk.spId||"")+'" title="'+(tk.done?"Atgal į vykdomas":"Užbaigti")+'">'+IC.check+'</span><span class="tk-txt"><span class="gh-nr" style="font-family:var(--mono);color:#fff;background:var(--blue);padding:1px 6px;border-radius:3px;font-size:11px">Nr. '+esc(x.p.id)+'</span> '+esc(tk.text)+'</span><span class="tk-due dl dl-'+tone+'">'+(tk.done?"atlikta":"iki "+fmtLT(tk.due))+'</span></div>';}).join("")+'</div></div>'):'';
   // mano projektų suvestinė: TRANSPONUOTA matrica — stulpelis kiekvienai mano daliai, eilutės = rodikliai
   var multiPart={};items.forEach(function(it){multiPart[it.p.id]=(multiPart[it.p.id]||0)+1;});
+  var meLc0=(state.meEmail||"").trim().toLowerCase();
   var cols=items.map(function(it){var pl=it.myHours||0,sp=myStageSpent(it.p.id,it.s.code),lk=pl-sp;
-    var dl=it.s.deadline||it.p.deadline;var d=dl?daysBetween(today,dl):null;var tone=d===null?"grey":d<0?"red":d<=7?"amber":"green";
+    var myPr=(it.s.pris||[]).find(function(pr){return (pr.email||"").trim().toLowerCase()===meLc0||pr.name===state.me;});
+    var dl=(myPr&&myPr.end)||it.s.deadline||it.p.deadline;var d=dl?daysBetween(today,dl):null;var tone=d===null?"grey":d<0?"red":d<=7?"amber":"green";
     return {it:it,pl:pl,sp:sp,lk:lk,dl:dl,tone:tone};});
   cols.sort(function(a,b){return new Date(a.dl||"2100-01-01")-new Date(b.dl||"2100-01-01");});
   var r1='<tr><td class="rlabel">Projektas</td>'+cols.map(function(c){var sub=(multiPart[c.it.p.id]>1)?'<div class="psub">'+esc(c.it.s.name)+'</div>':'';return '<td class="phead">'+esc(c.it.p.id)+sub+'</td>';}).join('')+'</tr>';
