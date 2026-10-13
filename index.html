@@ -215,6 +215,14 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gbar{position:absolute;top:50%;transform:translateY(-50%);height:21px;border-radius:5px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.18);cursor:default;z-index:1;}
 .gbar.green{background:var(--green);}.gbar.amber{background:var(--amber);}.gbar.red{background:var(--red);}
 .gtoday{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);opacity:.75;z-index:2;}
+.gsub{background:#FAFCFD;}
+.gsub .gname-sub{padding-left:34px;font-weight:600;font-size:11.5px;display:flex;align-items:center;gap:6px;}
+.gwin{position:absolute;top:50%;transform:translateY(-50%);height:22px;border-radius:5px;background:rgba(30,94,140,.08);border:1px dashed rgba(30,94,140,.35);z-index:0;}
+.gpd{position:absolute;top:50%;transform:translateY(-50%);height:18px;z-index:1;box-sizing:border-box;border-right:1px solid rgba(255,255,255,.6);}
+.gpd.green{background:var(--green);}.gpd.amber{background:var(--amber);}.gpd.red{background:var(--red);}
+.gpd:first-of-type{border-top-left-radius:4px;border-bottom-left-radius:4px;}
+.gterm{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--steel-700);z-index:3;}
+.gterm:before{content:"";position:absolute;top:2px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--steel-700);}
 .ghead{display:grid;border-bottom:1px solid var(--line);background:#F7F9FA;position:sticky;top:0;z-index:4;}
 .ghlab{position:sticky;left:0;z-index:5;background:#F7F9FA;border-right:1px solid var(--line);}
 .gmrow{position:relative;height:19px;border-bottom:1px solid var(--line);}
@@ -974,13 +982,25 @@ function viewSvWork(){
     var totalW=span*PXD,rowCols='grid-template-columns:'+NAMEW+'px '+totalW+'px';
     function px(dstr){return daysBetween(fromDt,new Date(dstr+"T00:00:00"))*PXD;}
     var tdx=px(isoD(today)),todayLine=(tdx>=0&&tdx<=totalW)?'<div class="gtoday" style="left:'+tdx+'px"></div>':'';
+    function planDays(endIso,n){var out=[];if(!endIso||n<=0)return out;var d=new Date(endIso+"T00:00:00"),guard=0;while(out.length<n&&guard<500){var wd=d.getDay();if(wd!==0&&wd!==6)out.unshift(isoD(d));d.setDate(d.getDate()-1);guard++;}return out;}
+    function ganttProjRow(it){var e=it.end||it.start;var n=e?daysBetween(today,new Date(e+"T00:00:00")):99,tone=n<0?"red":n<=7?"amber":"green";
+      var win="";if(it.start&&it.end){var l=Math.max(0,px(it.start)),w=Math.max(PXD,px(it.end)-px(it.start)+PXD);win='<div class="gwin" style="left:'+l+'px;width:'+w+'px"></div>';}
+      var pd=Math.round((it.hours||0)/CAP),days=planDays(it.end,pd);
+      var cells=days.map(function(ds){var x=px(ds);if(x<0||x>totalW-1)return "";return '<div class="gpd '+tone+'" style="left:'+x+'px;width:'+PXD+'px" title="Suplanuota '+nfD(it.hours)+' d. iki '+(it.end?fmtLT(it.end):"?")+'"></div>';}).join("");
+      var term=it.end?('<div class="gterm" style="left:'+(px(it.end)+PXD)+'px" title="Terminas '+fmtLT(it.end)+'"></div>'):"";
+      var lbl='<span class="gh-nr">Nr. '+esc(it.pr.id)+'</span> <span class="muted" style="font-size:10px">'+nfD(it.hours)+' d.'+(it.end?' · iki '+fmtLT(it.end):"")+'</span>';
+      return '<div class="grow2 gsub" style="'+rowCols+'"><div class="gname gname-sub">'+lbl+'</div><div class="gtrack">'+todayLine+win+cells+term+'</div></div>';}
     function ganttRow(sub,code){var its=(gBySub[sub.email]||[]).filter(function(it){return it.s.code===code;});
+      var key="g|"+sub.email+"|"+code,open=!!state.svOpen[key];
       var bars=its.filter(function(it){return it.start||it.end;}).map(function(it){var s=it.start||it.end,e=it.end||it.start;
         var left=Math.max(0,px(s)),w=Math.max(PXD,px(e)-px(s)+PXD);var n=daysBetween(today,new Date(e+"T00:00:00"));var tone=n<0?"red":n<=7?"amber":"green";
         var tip="Nr. "+esc(it.pr.id)+" — "+esc(it.s.name)+" · "+(it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")+" · "+nfD(it.hours)+" d.";
         return '<div class="gbar '+tone+'" style="left:'+left+'px;width:'+w+'px" title="'+tip+'">'+esc(it.pr.id)+" · "+esc(it.s.name)+'</div>';}).join("");
       var nt=its.filter(function(it){return !it.start&&!it.end;}).length,ntNote=nt?'<span class="muted" style="font-size:10px;margin-left:4px">+'+nt+' be termino</span>':'';
-      return '<div class="grow2" style="'+rowCols+'"><div class="gname">'+avatar(sub.name)+'<span>'+esc(sub.name)+'</span>'+ntNote+'</div><div class="gtrack">'+todayLine+bars+'</div></div>';}
+      var row='<div class="grow2 svclick'+(open?" open":"")+'" style="'+rowCols+'" data-act="svtogg" data-key="'+esc(key)+'" title="Rodyti / slėpti darbų planą"><div class="gname"><span class="caret">'+(open?"▾":"▸")+'</span>'+avatar(sub.name)+'<span>'+esc(sub.name)+'</span>'+ntNote+'</div><div class="gtrack">'+todayLine+bars+'</div></div>';
+      if(!open)return row;
+      var det=its.filter(function(it){return it.start||it.end;}).sort(function(a,b){return (a.end||a.start||"").localeCompare(b.end||b.start||"");}).map(ganttProjRow).join("");
+      return row+(det||'<div class="grow2 gsub" style="'+rowCols+'"><div class="gname gname-sub muted">be terminų</div><div class="gtrack">'+todayLine+'</div></div>');}
     var bandW=NAMEW+totalW;
     var gBody=deptGroups.map(function(g){return '<div class="gband" style="width:'+bandW+'px"><span class="gband-lab"><span class="gh-nr" style="background:var(--steel-500)">'+esc(g.code)+'</span> '+esc(g.name)+'</span></div>'+g.subs.map(function(sub){return ganttRow(sub,g.code);}).join("");}).join("");
     // dienų ašis viršuje (mėnesiai + dienos su atskyrimu)
