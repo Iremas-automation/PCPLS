@@ -947,10 +947,13 @@ function viewSvWork(){
   var deptGroups=codes.map(function(c){return {code:c,name:skyriusName(c),subs:subs.filter(function(s){return (s.depts||[]).indexOf(c)>=0;})};}).filter(function(g){return g.subs.length;});
   // --- užimtumo eilutė vienam pavaldiniui ---
   function subLoadRow(sub,code){
-    var ap=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){if(s.code!==code)return;(s.pris||[]).forEach(function(p){if(p.email===sub.email)ap.push({pr:pr,s:s,h:p.hours||0});});});});
-    var nP=ap.length,planH=ap.reduce(function(a,x){return a+x.h;},0);
-    var logH=state.regs.reduce(function(a,r){return a+((r.who===sub.name&&r.code===code)?r.hours:0);},0);
-    var wkH=WB.slice(0,5).reduce(function(a,d){return a+state.regs.reduce(function(b,r){return b+((r.whoEmail===sub.email&&r.date===d&&r.code===code)?r.hours:0);},0);},0);
+    // bendras krūvis: visi AKTYVŪS (neuždaryti) projektai, visi skyriai (ne tik šios grupės)
+    var planH=0,projSet={};
+    PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){(s.pris||[]).forEach(function(p){if(p.email===sub.email){planH+=(p.hours||0);projSet[pr.id]=1;}});});});
+    var nP=Object.keys(projSet).length; // paskirtų aktyvių projektų skaičius
+    // pradirbta: visos val. aktyviems projektams (+ rankiniai), neskaitant uždarytų
+    var logH=state.regs.reduce(function(a,r){if(r.who!==sub.name)return a;var pr=projById(r.pid);return a+((pr&&pr.status==="closed")?0:r.hours);},0);
+    var wkH=WB.slice(0,5).reduce(function(a,d){return a+state.regs.reduce(function(b,r){if(r.whoEmail!==sub.email||r.date!==d)return b;var pr=projById(r.pid);return b+((pr&&pr.status==="closed")?0:r.hours);},0);},0);
     var wkPct=Math.round(wkH/(5*CAP)*100),wkTone=wkPct>100?"red":wkPct>=85?"amber":"green";
     var key=sub.email+"|"+code,open=!!state.svOpen[key];
     var row='<div class="gr row svsub svclick'+(open?" open":"")+'" data-act="svtogg" data-key="'+esc(key)+'" title="Rodyti / slėpti valandas"><span class="who"><span class="caret">'+(open?"▾":"▸")+'</span>'+avatar(sub.name)+'<span style="font-weight:600">'+esc(sub.name)+'</span></span>'+
@@ -1041,7 +1044,7 @@ function viewSvWork(){
   var segs=[["assign","Projekto paskyrimas"],["schedule","Pavaldinių grafikas"],["load","Pavaldinių užimtumas"]];
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
   var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>';
-  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Dalių</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
+  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
   var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span></div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+seg+svBody+'</div>';
