@@ -962,7 +962,7 @@ function viewSvWork(){
   function subDetailGrid(sub,code){
     var MM=monthWorkdays(state.statOff),mLbl=monthLabelOf(state.statOff);
     var nav='<div class="monthnav"><button class="btn sm" data-act="statprev">‹</button><span class="mlabel">'+esc(mLbl)+'</span><button class="btn sm" data-act="statnext">›</button>'+(state.statOff!==0?'<button class="btn sm" data-act="statnow">Šis mėnuo</button>':'')+'</div>';
-    var gReg=state.regs.filter(function(r){return r.who===sub.name&&r.code===code&&MM.indexOf(r.date)>=0;});
+    var gReg=state.regs.filter(function(r){return r.who===sub.name&&MM.indexOf(r.date)>=0&&(r.code===code||!projById(r.pid));});
     var cH={},cO={},kTot={},kInfo={},kOrd=[];
     gReg.forEach(function(r){var k=r.pid+"||"+(r.code||"-");if(kTot[k]==null){kTot[k]=0;kInfo[k]={pid:r.pid,code:r.code||"-"};kOrd.push(k);}kTot[k]+=r.hours;cH[k+"|"+r.date]=(cH[k+"|"+r.date]||0)+r.hours;cO[k+"|"+r.date]=(cO[k+"|"+r.date]||0)+(r.ot||0);});
     kOrd=kOrd.filter(function(k){return kTot[k]>0;}).sort(function(a,b){return kTot[b]-kTot[a];});
