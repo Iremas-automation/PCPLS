@@ -535,10 +535,14 @@ function canAdmin(){return myTabKeys().indexOf("admin")>=0;}
 /* mapina žalius sąrašų įrašus į programos struktūrą */
 function assemble(raw){
   // Seni (pereinamojo laikotarpio) projektai: Nr. -> pavadinimas, iš „SeniProjektai" sąrašo.
-  // Numeris skaitomas tolerantiškai: ProjektoNr / iškraipyti SharePoint vidiniai pavadinimai / Title.
+  // Numeris skaitomas tolerantiškai: SharePoint „Iš Excel" dažnai nekelia 1-o stulpelio į Title,
+  // o sukuria atskirą stulpelį iškraipytu vidiniu vardu (pvz. „Projekto_x0020_Nr_x002e_").
   LEGACY={}; (raw.seniProjektai||[]).forEach(function(f){
-    var nr=String(f.ProjektoNr||f.Nr||f["Projekto_x0020_Nr_x002e_"]||f["Projekto_x0020_Nr_x002E_"]||f["Projekto_x0020_Nr"]||f.Title||"").trim();
-    var nm=String(f.Pavadinimas||f.Title_pavadinimas||"").trim();
+    var nr=String(f.ProjektoNr||f.Nr||"").trim();
+    if(!nr){for(var k in f){if(/^Projekto_x0020_Nr|^ProjektoNr|^Projekto_?Nr/i.test(k)){var v=f[k];if(v!=null&&String(v).trim()){nr=String(v).trim();break;}}}}
+    if(!nr)nr=String(f.Title||"").trim();
+    var nm=String(f.Pavadinimas||"").trim();
+    if(!nm){for(var k2 in f){if(/^Pavadinim/i.test(k2)){var v2=f[k2];if(v2!=null&&String(v2).trim()){nm=String(v2).trim();break;}}}}
     if(nr&&nm&&nr!==nm)LEGACY[nr]=nm;});
   PEOPLE = raw.darbuotojai.map(function(f,i){
     var _dp=String(f.Skyrius||"").split(/[,;]+/).map(function(s){return s.trim();}).filter(Boolean);
