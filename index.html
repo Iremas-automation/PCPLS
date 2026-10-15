@@ -207,8 +207,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .trm-b{background:rgba(30,94,140,.16);color:#1a4a6b;}
 /* Gantt: dvi zonos — fiksuoti vardai (kairėje) + slenkama laiko juosta (dešinėje) */
 .gantt2{display:flex;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;align-items:flex-start;}
-.gnames{flex:0 0 190px;width:190px;background:var(--panel);border-right:1px solid var(--line);position:relative;z-index:3;box-shadow:3px 0 6px -3px rgba(30,40,50,.22);}
-.gtime{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:thin;scrollbar-color:var(--steel-400) var(--steel-100);}
+.gnames{flex:0 0 190px;width:190px;background:var(--panel);border-right:1px solid var(--line);position:relative;z-index:3;box-shadow:3px 0 6px -3px rgba(30,40,50,.22);max-height:60vh;overflow:hidden;}
+.gtime{flex:1 1 auto;min-width:0;max-height:60vh;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--steel-400) var(--steel-100);overscroll-behavior:contain;}
+.gtime::-webkit-scrollbar{width:12px;}
 .gtime::-webkit-scrollbar{height:12px;}
 .gtime::-webkit-scrollbar-track{background:var(--steel-100);}
 .gtime::-webkit-scrollbar-thumb{background:var(--steel-400);border-radius:6px;border:2px solid var(--steel-100);}
@@ -221,6 +222,8 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gday{position:absolute;top:0;height:19px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--steel-500);border-left:1px solid var(--line);font-family:var(--mono);box-sizing:border-box;}
 .gday.we{background:rgba(30,40,50,.055);}
 .gday.td{background:var(--blue);color:#fff;font-weight:700;}
+.gweek{position:absolute;top:0;height:19px;display:flex;align-items:center;padding-left:4px;font-size:9px;color:var(--steel-500);border-left:1px solid var(--line);font-family:var(--mono);box-sizing:border-box;white-space:nowrap;}
+.gweek.td{color:var(--blue);font-weight:700;background:rgba(30,94,140,.08);}
 .gn-band,.gt-band{height:30px;box-sizing:border-box;background:#EEF2F5;border-top:1px solid var(--line);}
 .gn-band{display:flex;align-items:center;gap:7px;padding:0 12px;font-size:11px;font-weight:700;color:var(--steel-700);}
 .gn-band:first-of-type,.gt-band:first-of-type{border-top:none;}
@@ -230,7 +233,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gn-sub,.gt-sub{height:34px;box-sizing:border-box;border-top:1px solid var(--line);}
 .gn-sub{display:flex;align-items:center;gap:6px;padding:0 10px 0 28px;font-size:11.5px;background:#FAFCFD;}
 .gt-sub{background:#FAFCFD;}
-.gtrack{position:relative;height:100%;background:repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px 24px);}
+.gtrack{position:relative;height:100%;background:repeating-linear-gradient(90deg,var(--line) 0 1px,transparent 1px var(--gstep,24px));}
 .gbar{position:absolute;top:50%;transform:translateY(-50%);height:21px;border-radius:5px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.18);cursor:default;z-index:1;}
 .gbar.green{background:var(--green);}.gbar.amber{background:var(--amber);}.gbar.red{background:var(--red);}
 .gtoday{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);opacity:.75;z-index:2;}
@@ -247,6 +250,8 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .dfield .dnat{position:absolute;right:0;top:0;width:40px;height:100%;opacity:0;pointer-events:none;border:0;padding:0;}
 .dfield .dbtn{position:absolute;right:1px;top:1px;bottom:1px;width:36px;display:grid;place-items:center;background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--steel-500);border-radius:0 5px 5px 0;}
 .dfield .dbtn:hover{color:var(--blue);background:var(--steel-100);}
+.gzoom{display:flex;align-items:center;gap:5px;}
+.gzoom .btn.sm{min-width:30px;width:30px;padding:3px 0;justify-content:center;font-weight:700;font-size:15px;line-height:1;}
 .tabchips{display:flex;gap:3px;flex-wrap:wrap;}
 .tabchip{font-size:9.5px;font-weight:700;background:var(--steel-100);color:var(--steel-600);padding:2px 5px;border-radius:3px;white-space:nowrap;}
 .chkgrid{display:flex;flex-direction:column;gap:7px;}
@@ -502,7 +507,7 @@ var TAB_LT={projektai:"Projektai",mine:"Mano projektai",svwork:"Skyriaus darbai"
 var PEOPLE=[], SKYRIAI=[], PROJECTS=[];
 var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             selId:null, pelId:null, me:null, meEmail:null,
-            fFrom:isoD(new Date(today.getFullYear(),today.getMonth(),1)), fTo:isoD(new Date(today.getFullYear(),today.getMonth()+1,0)), fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, statOff:0, collapsed:{}, svOpen:{}, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
+            fFrom:isoD(new Date(today.getFullYear(),today.getMonth(),1)), fTo:isoD(new Date(today.getFullYear(),today.getMonth()+1,0)), fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, statOff:0, collapsed:{}, svOpen:{}, ganttPx:8, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
 function personByEmail(e){e=(e||"").toLowerCase();return PEOPLE.find(function(p){return (p.email||"").toLowerCase()===e;});}
@@ -992,7 +997,8 @@ function viewSvWork(){
   var ganttHtml;
   if(!gAny){ganttHtml='<div class="empty">Dar nėra priskirtų terminų. Priskirk darbą nurodydamas termino pradžią/pabaigą — jie atsiras grafike.</div>';}
   else{
-    ds.sort();var PXD=24,NAMEW=190,LTMN=["Sausis","Vasaris","Kovas","Balandis","Gegužė","Birželis","Liepa","Rugpjūtis","Rugsėjis","Spalis","Lapkritis","Gruodis"];
+    ds.sort();var PXD=state.ganttPx||8,NAMEW=190,LTMN=["Sausis","Vasaris","Kovas","Balandis","Gegužė","Birželis","Liepa","Rugpjūtis","Rugsėjis","Spalis","Lapkritis","Gruodis"];
+    var showDays=PXD>=16,gstep=showDays?PXD:7*PXD;
     // pilnas duomenų ruožas; fokusas į šią savaitę atliekamas auto-poslinkiu (žr. render)
     var fromDt=addDays(new Date(ds[0]+"T00:00:00"),-3),toDt=addDays(new Date(ds[ds.length-1]+"T00:00:00"),5);
     if(today<fromDt)fromDt=addDays(new Date(today),-3); if(today>toDt)toDt=addDays(new Date(today),5);
@@ -1035,12 +1041,18 @@ function viewSvWork(){
         }
       });
     });
-    // dienų ašis (mėnesiai + dienos) — laiko pusėje
-    var dayCells="";for(var di=0;di<span;di++){var dt=new Date(fromDt);dt.setDate(dt.getDate()+di);var wd=dt.getDay(),we=(wd===0||wd===6),td2=(isoD(dt)===isoD(today));dayCells+='<div class="gday'+(we?" we":"")+(td2?" td":"")+'" style="left:'+(di*PXD)+'px;width:'+PXD+'px">'+dt.getDate()+'</div>';}
+    // dienų/savaičių ašis (mėnesiai + dienos arba savaitės) — laiko pusėje
+    var dayCells="";
+    if(showDays){
+      for(var di=0;di<span;di++){var dt=new Date(fromDt);dt.setDate(dt.getDate()+di);var wd=dt.getDay(),we=(wd===0||wd===6),td2=(isoD(dt)===isoD(today));dayCells+='<div class="gday'+(we?" we":"")+(td2?" td":"")+'" style="left:'+(di*PXD)+'px;width:'+PXD+'px">'+dt.getDate()+'</div>';}
+    } else {
+      // kompaktiškas mastelis: žymos kas pirmadienį (MM-DD), savaitiniai skirtukai
+      for(var di=0;di<span;di++){var dt=new Date(fromDt);dt.setDate(dt.getDate()+di);if(dt.getDay()!==1)continue;var dd=daysBetween(dt,today),isThisWk=(dd>=0&&dd<7);dayCells+='<div class="gweek'+(isThisWk?" td":"")+'" style="left:'+(di*PXD)+'px;width:'+(7*PXD)+'px">'+(String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0"))+'</div>';}
+    }
     var monthSegs="",j=0;while(j<span){var dm=new Date(fromDt);dm.setDate(dm.getDate()+j);var mo=dm.getMonth(),yr=dm.getFullYear(),s0=j;while(j<span){var d3=new Date(fromDt);d3.setDate(d3.getDate()+j);if(d3.getMonth()!==mo)break;j++;}monthSegs+='<div class="gmseg" style="left:'+(s0*PXD)+'px;width:'+((j-s0)*PXD)+'px">'+LTMN[mo]+' '+yr+'</div>';}
-    var timeHead='<div class="gt-head"><div class="gmrow">'+monthSegs+'</div><div class="gdrow">'+dayCells+'</div></div>';
+    var timeHead='<div class="gt-head"><div class="gmrow">'+monthSegs+'</div><div class="gdrow'+(showDays?"":" wk")+'">'+dayCells+'</div></div>';
     var jumpTo=Math.max(0,tdx-3*PXD);
-    ganttHtml='<div class="gantt2">'
+    ganttHtml='<div class="gantt2" style="--gstep:'+gstep+'px">'
       +'<div class="gnames"><div class="gn-head"></div>'+namesHtml+'</div>'
       +'<div class="gtime" id="ganttScroll" data-today="'+jumpTo+'"><div class="gt-inner" style="width:'+totalW+'px">'+timeHead+timeHtml+'</div></div>'
       +'</div>';
@@ -1050,7 +1062,8 @@ function viewSvWork(){
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
   var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>';
   var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
-  var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span></div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
+  var zoomCtl='<div class="gzoom"><span class="eyebrow" style="letter-spacing:0;text-transform:none">Mastelis</span><button class="btn sm" data-act="gzoom" data-d="-1" title="Mažinti — daugiau mėnesių">–</button><button class="btn sm" data-act="gzoom" data-d="1" title="Didinti — daugiau detalių">+</button></div>';
+  var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span>'+zoomCtl+'</div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+seg+svBody+'</div>';
 }
@@ -1265,7 +1278,7 @@ function render(){
   var main= state.view==="detail"?viewDetail(): state.view==="mine"?viewMine(): state.view==="svwork"?viewSvWork(): state.view==="pelningumas"?viewPelningumas(): state.view==="stats"?viewStats(): state.view==="admin"?viewAdmin(): viewList();
   var tabsHtml=tabs.map(function(t){return '<button class="tab '+(state.tab===t[0]?"on":"")+'" data-tab="'+t[0]+'">'+t[2]+t[1]+'</button>';}).join("");
   var warnBanner=state.warn?'<div class="banner warn">'+IC.warn+'<div>'+state.warn+'</div></div>':'';
-  var _g0=document.getElementById("ganttScroll");if(_g0)state._gsl=_g0.scrollLeft;
+  var _g0=document.getElementById("ganttScroll");if(_g0){state._gsl=_g0.scrollLeft;state._gst=_g0.scrollTop;}
   app.innerHTML=
     '<header class="topbar"><div class="brand"><div class="mark">'+IC.gauge+'</div><div><div class="b-t">PROJEKTŲ CENTRAS</div><div class="b-s">Projektų laiko sekimas</div></div></div>'+
     '<nav class="tabs">'+tabsHtml+'</nav>'+
@@ -1273,7 +1286,7 @@ function render(){
     warnBanner+'<main class="body">'+main+'</main>'+viewModal()+
     (state.saving?'<div class="saving">Išsaugoma…</div>':'')+
     (state.toast?'<div class="toast">'+IC.check+'<span>'+esc(state.toast)+'</span></div>':'');
-  var _g1=document.getElementById("ganttScroll");if(_g1){_g1.scrollLeft=state._ganttJump?(Number(_g1.getAttribute("data-today"))||0):(state._gsl||0);state._ganttJump=false;}
+  var _g1=document.getElementById("ganttScroll");if(_g1){_g1.scrollLeft=state._ganttJump?(Number(_g1.getAttribute("data-today"))||0):(state._gsl||0);state._ganttJump=false;var _st=state._gst||0;_g1.scrollTop=_st;var _gn=_g1.parentNode&&_g1.parentNode.querySelector(".gnames");if(_gn)_gn.scrollTop=_st;}
   if(state.modal&&state.modal.type==="cell"){var cf=document.getElementById("cell-h");if(cf){cf.focus();try{cf.select();}catch(e){}}}
   if(state._qfocus){var qi=document.getElementById("proj-q");if(qi){qi.focus();try{var qv=qi.value;qi.setSelectionRange(qv.length,qv.length);}catch(e){}}state._qfocus=false;}
 }
@@ -1500,6 +1513,7 @@ document.addEventListener("click",function(e){
   else if(a==="togglegroup"){var gk=el.getAttribute("data-g");state.collapsed[gk]=!state.collapsed[gk];render();}
   else if(a==="statview"){state.statView=el.getAttribute("data-v");render();}
   else if(a==="svview"){state.svView=el.getAttribute("data-v");if(state.svView==="schedule")state._ganttJump=true;render();}
+  else if(a==="gzoom"){var lv=[6,8,11,16,22,28];var dd=Number(el.getAttribute("data-d"));var ix=lv.indexOf(state.ganttPx);if(ix<0)ix=1;ix=Math.max(0,Math.min(lv.length-1,ix+dd));state.ganttPx=lv[ix];state._ganttJump=true;render();}
   else if(a==="svtogg"){var sk=el.getAttribute("data-key");state.svOpen[sk]=!state.svOpen[sk];render();}
   else if(a==="opendate"){var fid=el.getAttribute("data-for");var nat=document.querySelector('.dnat[data-for="'+fid+'"]');var txt=document.getElementById(fid);if(nat){if(txt&&/^\d{4}-\d{2}-\d{2}$/.test(txt.value))nat.value=txt.value;try{nat.showPicker();}catch(e){try{nat.focus();nat.click();}catch(_){}}}return;}
   else if(a==="tsprev"){state.tsOff--;render();}
@@ -1581,6 +1595,9 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
   else if(id==="f-user"){state.fUser=v;render();}
   else if(id==="f-proj"){state.fProj=v;render();}
 });
+// grafiko vertikalaus slinkimo sinchronizacija: laiko juosta <-> vardų stulpelis
+document.addEventListener("scroll",function(e){var t=e.target;if(t&&t.id==="ganttScroll"){var gn=t.parentNode&&t.parentNode.querySelector(".gnames");if(gn&&gn.scrollTop!==t.scrollTop)gn.scrollTop=t.scrollTop;}},true);
+document.addEventListener("wheel",function(e){var n=e.target&&e.target.closest&&e.target.closest(".gnames");if(n){var gt=n.parentNode&&n.parentNode.querySelector(".gtime");if(gt){gt.scrollTop+=e.deltaY;e.preventDefault();}}},{passive:false});
 document.addEventListener("keydown",function(e){
   if(e.key==="Enter"&&e.target&&(e.target.id==="cell-h"||e.target.id==="cell-oth")){e.preventDefault();saveCell();}
 });
