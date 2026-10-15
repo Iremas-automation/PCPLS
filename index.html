@@ -242,6 +242,11 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gterm:before{content:"";position:absolute;top:2px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--steel-700);}
 .asg-x{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--steel-200);color:var(--steel-600);font-size:13px;line-height:1;cursor:pointer;}
 .asg-x:hover{background:var(--red);color:#fff;}
+.dfield{position:relative;display:block;}
+.dfield .isod{width:100%;padding-right:40px;box-sizing:border-box;letter-spacing:.02em;}
+.dfield .dnat{position:absolute;right:0;top:0;width:40px;height:100%;opacity:0;pointer-events:none;border:0;padding:0;}
+.dfield .dbtn{position:absolute;right:1px;top:1px;bottom:1px;width:36px;display:grid;place-items:center;background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--steel-500);border-radius:0 5px 5px 0;}
+.dfield .dbtn:hover{color:var(--blue);background:var(--steel-100);}
 .tabchips{display:flex;gap:3px;flex-wrap:wrap;}
 .tabchip{font-size:9.5px;font-weight:700;background:var(--steel-100);color:var(--steel-600);padding:2px 5px;border-radius:3px;white-space:nowrap;}
 .chkgrid{display:flex;flex-direction:column;gap:7px;}
@@ -454,7 +459,7 @@ function isoD(d){var x=new Date(d);return x.getFullYear()+"-"+pad2(x.getMonth()+
 function iso(off){return isoD(addDays(today,off));}
 function dOnly(s){return s?String(s).slice(0,10):"";}
 function spDate(s){var d=dOnly(s);return d?d+"T12:00:00Z":null;}
-function fmtLT(s){return s?new Date(s).toLocaleDateString("lt-LT",{year:"2-digit",month:"2-digit",day:"2-digit"}):"—";}
+function fmtLT(s){return s?new Date(s).toLocaleDateString("lt-LT",{year:"numeric",month:"2-digit",day:"2-digit"}):"—";}
 function daysBetween(a,b){return Math.round((new Date(b)-new Date(a))/MS);}
 function dlCellCls(deadlineISO,d){ if(!deadlineISO)return ""; var diff=daysBetween(d,deadlineISO); if(diff===0)return "dl-day"; if(diff>0&&diff<=3)return "dl-soon"; return ""; }
 function nf(x){return (Math.round((x+Number.EPSILON)*100)/100).toString().replace(".",",");}
@@ -1072,8 +1077,8 @@ function viewStats(){
   var sv=state.statView||"load";
   var segs=[["load","Darbuotojų apkrautumas"],["byuser","Valandos pagal darbuotoją"],["ot","Viršvalandžiai"],["dept","Skyrių apkrova"]];
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(sv===s[0]?" on":"")+'" data-act="statview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
-  var filterBar=(sv!=="dept")?('<div class="filters"><div class="fl"><span class="eyebrow">Nuo</span><input class="sel" id="f-from" type="date" value="'+esc(state.fFrom||"")+'"></div>'+
-    '<div class="fl"><span class="eyebrow">Iki</span><input class="sel" id="f-to" type="date" value="'+esc(state.fTo||"")+'"></div>'+
+  var filterBar=(sv!=="dept")?('<div class="filters"><div class="fl"><span class="eyebrow">Nuo</span>'+dField("f-from",state.fFrom,"sel")+'</div>'+
+    '<div class="fl"><span class="eyebrow">Iki</span>'+dField("f-to",state.fTo,"sel")+'</div>'+
     '<div class="fl"><span class="eyebrow">Projektas</span><select class="sel" id="f-proj">'+projOpts+'</select></div>'+
     '<div class="fl"><span class="eyebrow">Darbuotojas</span><select class="sel" id="f-user">'+userOpts+'</select></div>'+
     (anyFilter?'<button class="btn sm" data-act="clearfilters" style="margin-bottom:1px">Išvalyti</button>':'')+'</div>'):'';
@@ -1099,6 +1104,9 @@ function viewStats(){
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Užregistruotos valandos</span><h1>Statistika</h1></div>'+filterBar+'</div>'+seg+body+'</div>';
 }
 function val(id){var e=document.getElementById(id);return e?e.value:"";}
+var DCAL='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></svg>';
+// ISO datos laukas: visada rodo YYYY-MM-DD; kalendoriaus mygtukas atidaro gimtąjį pickerį
+function dField(id,value,cls){var v=esc(value||"");return '<span class="dfield"><input class="'+(cls||"inp")+' isod" id="'+id+'" type="text" inputmode="numeric" placeholder="YYYY-MM-DD" maxlength="10" autocomplete="off" value="'+v+'"><input class="dnat" type="date" data-for="'+id+'" value="'+v+'" tabindex="-1" aria-hidden="true"><button type="button" class="dbtn" data-act="opendate" data-for="'+id+'" aria-label="Pasirinkti datą">'+DCAL+'</button></span>';}
 function tabChips(keys){var ab={projektai:"Proj",mine:"Mano",svwork:"SkDarb",pelningumas:"Peln",stats:"Stat",admin:"Adm"};return keys.map(function(k){return '<span class="tabchip">'+esc(ab[k]||k)+'</span>';}).join("");}
 function viewAdmin(){
   if(!canAdmin())return '<div class="pane"><h1>Administravimas</h1><div class="empty">Nepakanka teisių.</div></div>';
@@ -1143,14 +1151,14 @@ function viewModal(){
      '<label class="field"><span class="eyebrow">Dalis / pastaba (nebūtina)</span><input class="inp" id="mp-code" placeholder="pvz. SK arba „pataisymai"></label>'+
      '<button class="btn primary wide" data-act="savemyproj">Pridėti į mano lentelę</button></div>';
   } else if(m.type==="task"){
-    inner='<div class="form"><h3>Nauja užduotis</h3><p class="sub">'+esc(selProject().name)+'</p><label class="field"><span class="eyebrow">Užduotis</span><input class="inp" id="tk-text" placeholder="pvz. SP paruošia užduotį VN"></label><label class="field"><span class="eyebrow">Vykdytojas (nebūtina)</span><select class="sel" id="tk-resp"><option value="">— nepriskirta —</option>'+personOptions("")+'</select></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="tk-due" type="date" value="'+iso(14)+'"></label><button class="btn primary wide" data-act="savetask">Pridėti</button></div>';
+    inner='<div class="form"><h3>Nauja užduotis</h3><p class="sub">'+esc(selProject().name)+'</p><label class="field"><span class="eyebrow">Užduotis</span><input class="inp" id="tk-text" placeholder="pvz. SP paruošia užduotį VN"></label><label class="field"><span class="eyebrow">Vykdytojas (nebūtina)</span><select class="sel" id="tk-resp"><option value="">— nepriskirta —</option>'+personOptions("")+'</select></label><label class="field"><span class="eyebrow">Terminas</span>'+dField("tk-due",iso(14),"inp")+'</label><button class="btn primary wide" data-act="savetask">Pridėti</button></div>';
   } else if(m.type==="stage"){var svc=m.kind==="svc";
     var sgCode='<option value="">— pasirink —</option>'+SKYRIAI.map(function(s){return '<option value="'+esc(s.code)+'"'+(m.code===s.code?" selected":"")+'>'+esc(s.code)+' — '+esc(s.name)+'</option>';}).join("");
     var kindSeg='<div class="statseg" style="margin-bottom:9px"><button type="button" class="segbtn'+(!svc?" on":"")+'" data-act="stage-kind" data-k="dept">Skyrius</button><button type="button" class="segbtn'+(svc?" on":"")+'" data-act="stage-kind" data-k="svc">Paslauga</button></div>';
     var codeField=svc?'<label class="field"><span class="eyebrow">Paslaugos pavadinimas</span><input class="inp" id="sg-name" placeholder="pvz. Viešinimas, PAV atranka, Topografija, SLD" value="'+esc(m.code||"")+'"></label>'
                      :'<label class="field"><span class="eyebrow">Skyrius / dalis</span><select class="sel" id="sg-code">'+sgCode+'</select></label><label class="chk" style="margin:-4px 0 12px"><input type="checkbox" id="sg-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>';
     var note=svc?'':'<p class="sub" style="margin-top:2px">Darbuotojus priskirs skyriaus vadovas („Skyriaus darbai").</p>';
-    inner='<div class="form"><h3>Pridėti eilutę</h3><p class="sub">'+esc(selProject().name)+'</p>'+kindSeg+codeField+priceSectionHtml("sg",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+'<label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="sg-due" type="date" value="'+esc(m.due||"")+'"></label>'+note+'<button class="btn primary wide" data-act="savestage">Pridėti</button></div>';
+    inner='<div class="form"><h3>Pridėti eilutę</h3><p class="sub">'+esc(selProject().name)+'</p>'+kindSeg+codeField+priceSectionHtml("sg",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+'<label class="field"><span class="eyebrow">Terminas</span>'+dField("sg-due",m.due,"inp")+'</label>'+note+'<button class="btn primary wide" data-act="savestage">Pridėti</button></div>';
   } else if(m.type==="empedit"){var isNew=!m.sp;var p=isNew?{name:"",email:"",role:"PROJ",dept:"",rate:230,tabs:[],inStats:true}:(PEOPLE.find(function(x){return String(x.spId)===String(m.sp);})||{});
     var curTabs=(p.tabs&&p.tabs.length)?p.tabs:defaultTabsForRole(p.role||"PROJ");
     var roleOpts=["Projektuotojas","SV","PV","Admin"].map(function(r){var rk=roleKey(r);return '<option value="'+r+'"'+(p.role===rk?" selected":"")+'>'+esc(ROLE_LT[rk])+'</option>';}).join("");
@@ -1179,7 +1187,7 @@ function viewModal(){
     var subChk=m.svc?'':'<label class="chk" style="margin:-2px 0 12px"><input type="checkbox" id="se-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>';
     inner='<div class="form"><h3>Redaguoti dalį</h3><p class="sub">'+esc(selProject().name)+' · '+esc(skyriusName(m.code))+'</p>'+
      priceSectionHtml("se",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+
-     '<label class="field"><span class="eyebrow">Dalies terminas</span><input class="inp" id="se-due" type="date" value="'+esc(m.due||"")+'"></label>'+subChk+
+     '<label class="field"><span class="eyebrow">Dalies terminas</span>'+dField("se-due",m.due,"inp")+'</label>'+subChk+
      '<p class="sub" style="margin-top:2px">Darbuotojus daliai priskiria skyriaus vadovas skiltyje „Skyriaus darbai".</p>'+
      '<button class="btn primary wide" data-act="savestageedit">Išsaugoti</button></div>';
   } else if(m.type==="assign"){var apr=projById(m.pid)||{};var ast=((apr.stages||[]).find(function(s){return s.code===m.code;}))||{};var aex=m.email?((ast.pris||[]).find(function(p){return p.email===m.email;})):null;
@@ -1191,18 +1199,18 @@ function viewModal(){
     inner='<div class="form"><h3>'+(aex?"Keisti priskyrimą":"Priskirti darbuotoją")+'</h3><p class="sub">Nr. '+esc(apr.id||"")+' · '+esc(skyriusName(m.code))+'</p>'+
      '<label class="field"><span class="eyebrow">Darbuotojas</span><select class="sel" id="as-person"'+(m.email?" disabled":"")+'>'+popts+'</select></label>'+
      '<div class="field"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="eyebrow">Planuojamos dienos</span><button type="button" class="btn sm" data-act="assign-all" data-d="'+remD+'">Visos dienos ('+remTxt+' d.)</button></div><input class="inp" id="as-days" type="number" min="0" step="0.5" value="'+esc(aex?nfD(aex.hours).replace(",","."):"")+'" placeholder="0"><span class="muted" style="font-size:12px;margin-top:4px;display:block">Parduota: '+nfD(soldD*CAP)+' d. · nepriskirta: '+remTxt+' d.</span></div>'+
-     '<div class="two"><label class="field"><span class="eyebrow">Termino pradžia</span><input class="inp" id="as-start" type="date" value="'+esc((aex&&aex.start)||"")+'"></label><label class="field"><span class="eyebrow">Termino pabaiga</span><input class="inp" id="as-end" type="date" value="'+esc((aex&&aex.end)||"")+'"></label></div>'+
+     '<div class="two"><label class="field"><span class="eyebrow">Termino pradžia</span>'+dField("as-start",(aex&&aex.start)||"","inp")+'</label><label class="field"><span class="eyebrow">Termino pabaiga</span>'+dField("as-end",(aex&&aex.end)||"","inp")+'</label></div>'+
      '<button class="btn primary wide" data-act="saveassign">Išsaugoti</button></div>';
   } else if(m.type==="taskedit"){var tke=null;(selProject().tasks||[]).forEach(function(t){if(String(t.spId)===String(m.sp))tke=t;});tke=tke||{text:"",assigneeName:"",due:""};
     inner='<div class="form"><h3>Redaguoti užduotį</h3><p class="sub">'+esc(selProject().name)+'</p>'+
      '<label class="field"><span class="eyebrow">Užduotis</span><input class="inp" id="te-text" value="'+esc(tke.text||"")+'"></label>'+
      '<label class="field"><span class="eyebrow">Vykdytojas</span><select class="sel" id="te-resp"><option value="">— nepriskirta —</option>'+personOptions(tke.assigneeName||"")+'</select></label>'+
-     '<label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="te-due" type="date" value="'+esc(tke.due||"")+'"></label>'+
+     '<label class="field"><span class="eyebrow">Terminas</span>'+dField("te-due",tke.due,"inp")+'</label>'+
      '<button class="btn primary wide" data-act="savetaskedit" data-sp="'+esc(m.sp||"")+'">Išsaugoti</button></div>';
   } else if(m.type==="projedit"){var pp=selProject()||{};
     inner='<div class="form"><h3>Redaguoti projektą</h3><p class="sub">Keičiant Nr. atnaujinami ir visi susiję įrašai.</p>'+
      '<div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="pe-id" value="'+esc(pp.id||"")+'"></label>'+
-     '<label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="pe-due" type="date" value="'+esc(pp.deadline||"")+'"></label></div>'+
+     '<label class="field"><span class="eyebrow">Terminas</span>'+dField("pe-due",pp.deadline,"inp")+'</label></div>'+
      '<label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="pe-name" value="'+esc(pp.name||"")+'"></label>'+
      '<button class="btn primary wide" data-act="saveproj">Išsaugoti</button></div>';
   } else if(m.type==="pmedit"){var pp=selProject()||{};
@@ -1213,7 +1221,7 @@ function viewModal(){
     var partSel="";
     if(!isRev){var pp=projById(state.pelId)||{};var sopt=(pp.stages||[]).filter(function(s){return s.soldPrice!=null||s.soldDays>0;}).map(function(s){return '<option value="'+esc(s.code)+'">'+esc(s.name)+(s.soldDays?(" — parduota "+nfD(stagePlanned(s))+" d."):"")+(s.soldPrice!=null?(" ("+eur(s.soldPrice)+")"):"")+'</option>';}).join("");
       partSel='<label class="field"><span class="eyebrow">Projekto dalis (nebūtina)</span><select class="inp" id="rv-code"><option value="">— nepriskirta —</option>'+sopt+'</select><span class="muted" style="font-size:12px;margin-top:4px;display:block">Priskyrus daliai su parduotomis dienomis, tos dalies parduotas biudžetas (dienos ir suma) sumažės subrangos suma.</span></label>';}
-    inner='<div class="form"><h3>'+(isRev?"Sutartis / pajamos":"Subranga / išlaidos")+'</h3><p class="sub">'+esc((projById(state.pelId)||{}).name||"")+'</p><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="rv-title" placeholder="'+(isRev?"Sutarties Nr.":"Tiekėjas / sutartis")+'"></label>'+partSel+'<div class="two"><label class="field"><span class="eyebrow">Data</span><input class="inp" id="rv-date" type="date"></label><label class="field"><span class="eyebrow">Suma be PVM, €</span><input class="inp" id="rv-sum" type="number" min="0" step="0.01" placeholder="0"></label></div><button class="btn primary wide" data-act="'+(isRev?"saverev":"savesub")+'">Pridėti</button></div>';
+    inner='<div class="form"><h3>'+(isRev?"Sutartis / pajamos":"Subranga / išlaidos")+'</h3><p class="sub">'+esc((projById(state.pelId)||{}).name||"")+'</p><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="rv-title" placeholder="'+(isRev?"Sutarties Nr.":"Tiekėjas / sutartis")+'"></label>'+partSel+'<div class="two"><label class="field"><span class="eyebrow">Data</span>'+dField("rv-date","","inp")+'</label><label class="field"><span class="eyebrow">Suma be PVM, €</span><input class="inp" id="rv-sum" type="number" min="0" step="0.01" placeholder="0"></label></div><button class="btn primary wide" data-act="'+(isRev?"saverev":"savesub")+'">Pridėti</button></div>';
   } else if(m.type==="newproject"){wide=" wide";var d=state.draft;
     var stages=d.stages.map(function(s,i){var svc=s.kind==="svc";
       return '<div class="stage-ed"><div class="ed-top"><span class="ed-idx">'+(svc?"Paslauga":"Skyriaus dalis")+' '+(i+1)+'</span><button class="iconbtn" data-act="draft-delstage" data-i="'+i+'">'+IC.trash+'</button></div>'+
@@ -1222,9 +1230,9 @@ function viewModal(){
           :'<label class="ed-lab">Skyrius / dalis</label><select class="sel" id="st-code-'+i+'" style="margin-bottom:8px">'+skyriusOptions(s.code)+'</select>'+
            '<label class="chk" style="margin-bottom:10px"><input type="checkbox" id="st-sub-'+i+'"'+(s.sub?" checked":"")+'> Subranga — darbus atliks subrangovas (neskiriama projektuotojams)</label>')+
       '<div class="ed-grid"><div><label class="ed-lab">Parduotos dienos'+(svc?' (nebūt.)':'')+'</label><input class="inp" id="st-days-'+i+'" type="number" min="0" placeholder="0" value="'+esc(s.days)+'"></div>'+
-      '<div><label class="ed-lab">Terminas</label><input class="inp" id="st-due-'+i+'" type="date" value="'+esc(s.due||"")+'"></div></div>'+
+      '<div><label class="ed-lab">Terminas</label>'+dField("st-due-"+i,s.due,"inp")+'</div></div>'+
       '<label class="ed-lab" style="margin-top:8px">Parduota suma, €'+(svc?'':' (nebūt. — kitaip dienos × įkainis)')+'</label><input class="inp" id="st-sum-'+i+'" type="number" min="0" step="0.01" placeholder="'+(svc?'0':'skaičiuojama iš dienų')+'" value="'+esc(s.sum!=null?s.sum:"")+'"></div>';}).join("");
-    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">Suvesk visas parduotas komercinio pasiūlymo eilutes — skyrių dalis (dienos × įkainis) ir paslaugas (viešinimas, PAV atranka, topo, SLD ir pan.).</p><div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Terminas</span><input class="inp" id="np-deadline" type="date" value="'+esc(d.deadline)+'"></label></div><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'" placeholder="Projekto pavadinimas"></label><label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="np-pm">'+pmOptions(d.pm||state.meEmail)+'</select></label><div class="sec-bar" style="margin-top:6px"><span class="eyebrow">Parduotos eilutės</span><span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Skyrius</button> <button class="btn sm" data-act="draft-addsvc">'+IC.plus+' Paslauga</button></span></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti projektą</button></div>';
+    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">Suvesk visas parduotas komercinio pasiūlymo eilutes — skyrių dalis (dienos × įkainis) ir paslaugas (viešinimas, PAV atranka, topo, SLD ir pan.).</p><div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Terminas</span>'+dField("np-deadline",d.deadline,"inp")+'</label></div><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'" placeholder="Projekto pavadinimas"></label><label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="np-pm">'+pmOptions(d.pm||state.meEmail)+'</select></label><div class="sec-bar" style="margin-top:6px"><span class="eyebrow">Parduotos eilutės</span><span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Skyrius</button> <button class="btn sm" data-act="draft-addsvc">'+IC.plus+' Paslauga</button></span></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti projektą</button></div>';
   } else if(m.type==="finishproj"){
     inner='<div class="form"><h3>Baigti projekto darbus?</h3><p class="sub">Projektas <b>Nr. '+esc(m.pid)+'</b> bus pašalintas iš tavo „Mano valandų" lentelės.</p><div class="banner info" style="margin:2px 0 4px">'+IC.check+'<div>Jau įvestos valandos <b>išliks</b> — jos lieka apskaitoje ir statistikoje. Prireikus projektą visada gali vėl pridėti mygtuku „Įvesti projekto Nr.".</div></div><div class="btnrow"><button class="btn" data-x>Atšaukti</button><button class="btn primary" data-act="delmyproj-go" data-pid="'+esc(m.pid)+'">Baigti darbus</button></div></div>';
   }
@@ -1493,6 +1501,7 @@ document.addEventListener("click",function(e){
   else if(a==="statview"){state.statView=el.getAttribute("data-v");render();}
   else if(a==="svview"){state.svView=el.getAttribute("data-v");if(state.svView==="schedule")state._ganttJump=true;render();}
   else if(a==="svtogg"){var sk=el.getAttribute("data-key");state.svOpen[sk]=!state.svOpen[sk];render();}
+  else if(a==="opendate"){var fid=el.getAttribute("data-for");var nat=document.querySelector('.dnat[data-for="'+fid+'"]');var txt=document.getElementById(fid);if(nat){if(txt&&/^\d{4}-\d{2}-\d{2}$/.test(txt.value))nat.value=txt.value;try{nat.showPicker();}catch(e){try{nat.focus();nat.click();}catch(_){}}}return;}
   else if(a==="tsprev"){state.tsOff--;render();}
   else if(a==="tsnext"){state.tsOff++;render();}
   else if(a==="tsnow"){state.tsOff=0;render();}
@@ -1562,10 +1571,13 @@ document.addEventListener("input",function(e){var id=e.target.id||"";
   }
 });
 document.addEventListener("change",function(e){var id=e.target.id,v=e.target.value;
+  // native datos pickeris -> ISO teksto laukas
+  if(e.target.classList&&e.target.classList.contains("dnat")){var fid=e.target.getAttribute("data-for");var t=document.getElementById(fid);if(t)t.value=v;id=fid;}
+  var isISO=(v===""||/^\d{4}-\d{2}-\d{2}$/.test(v));
   if(id==="status-filter"){state.fStatus=v;render();}
   else if(id==="f-pel"){state.pelId=v;render();}
-  else if(id==="f-from"){state.fFrom=v;render();}
-  else if(id==="f-to"){state.fTo=v;render();}
+  else if(id==="f-from"){if(isISO){state.fFrom=v;render();}}
+  else if(id==="f-to"){if(isISO){state.fTo=v;render();}}
   else if(id==="f-user"){state.fUser=v;render();}
   else if(id==="f-proj"){state.fProj=v;render();}
 });
