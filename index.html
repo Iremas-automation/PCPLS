@@ -250,6 +250,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .dfield .dnat{position:absolute;right:0;top:0;width:40px;height:100%;opacity:0;pointer-events:none;border:0;padding:0;}
 .dfield .dbtn{position:absolute;right:1px;top:1px;bottom:1px;width:36px;display:grid;place-items:center;background:transparent;border:none;border-left:1px solid var(--line);cursor:pointer;color:var(--steel-500);border-radius:0 5px 5px 0;}
 .dfield .dbtn:hover{color:var(--blue);background:var(--steel-100);}
+.metag{font-size:10px;font-weight:700;color:var(--blue);background:rgba(30,94,140,.1);padding:1px 6px;border-radius:9px;margin-left:2px;}
 .gzoom{display:flex;align-items:center;gap:5px;}
 .gzoom .btn.sm{min-width:30px;width:30px;padding:3px 0;justify-content:center;font-weight:700;font-size:15px;line-height:1;}
 .tabchips{display:flex;gap:3px;flex-wrap:wrap;}
@@ -921,7 +922,7 @@ function monthShort(k){return LTM[parseInt(k.slice(5,7),10)-1].slice(0,3)+" "+k.
 function monthLabel(k){return LTM[parseInt(k.slice(5,7),10)-1]+" "+k.slice(0,4);}
 function chartRow(label,valTxt,frac,cls){return '<div class="crow"><span class="cl">'+esc(label)+'</span><span class="ct"><span class="cf" style="width:'+(Math.max(0,Math.min(frac,1))*100)+'%;background:'+cls+'"></span></span><span class="cnum">'+valTxt+'</span></div>';}
 function myDeptCodes(){ if(myRole()==="ADMIN")return SKYRIAI.map(function(s){return s.code;}); var me=state.meEmail; return SKYRIAI.filter(function(s){return (s.head||"").toLowerCase()===me;}).map(function(s){return s.code;}); }
-function deptSubordinates(codes){ return PEOPLE.filter(function(p){return p.inProjects&&(p.depts||[]).some(function(c){return codes.indexOf(c)>=0;})&&p.email!==state.meEmail;}); }
+function deptSubordinates(codes){ return PEOPLE.filter(function(p){return p.inProjects&&(p.depts||[]).some(function(c){return codes.indexOf(c)>=0;});}); }
 /* priskyrimui: tik tie darbuotojai, kurie priklauso dalies skyriui, sugrupuoti */
 function assignPeopleOptions(code,sel){
   var cands=PEOPLE.filter(function(p){return p.inProjects&&(p.depts||[]).indexOf(code)>=0;});
@@ -966,7 +967,8 @@ function viewSvWork(){
     var wkH=WB.slice(0,5).reduce(function(a,d){return a+state.regs.reduce(function(b,r){if(r.whoEmail!==sub.email||r.date!==d)return b;var pr=projById(r.pid);return b+((pr&&pr.status==="closed")?0:r.hours);},0);},0);
     var wkPct=Math.round(wkH/(5*CAP)*100),wkTone=wkPct>100?"red":wkPct>=85?"amber":"green";
     var key=sub.email+"|"+code,open=!!state.svOpen[key];
-    var row='<div class="gr row svsub svclick'+(open?" open":"")+'" data-act="svtogg" data-key="'+esc(key)+'" title="Rodyti / slėpti valandas"><span class="who"><span class="caret">'+(open?"▾":"▸")+'</span>'+avatar(sub.name)+'<span style="font-weight:600">'+esc(sub.name)+'</span></span>'+
+    var meTag=(sub.email===state.meEmail)?' <span class="metag">(aš)</span>':'';
+    var row='<div class="gr row svsub svclick'+(open?" open":"")+'" data-act="svtogg" data-key="'+esc(key)+'" title="Rodyti / slėpti valandas"><span class="who"><span class="caret">'+(open?"▾":"▸")+'</span>'+avatar(sub.name)+'<span style="font-weight:600">'+esc(sub.name)+'</span>'+meTag+'</span>'+
       '<span class="r mono">'+nP+'</span>'+
       '<span class="r mono">'+nfD(planH)+' d.</span><span class="r mono">'+nfD(logH)+' d.</span>'+
       '<span class="r"><span class="pill '+wkTone+'">'+wkPct+'%</span></span></div>';
@@ -1026,7 +1028,8 @@ function viewSvWork(){
         var its=(gBySub[sub.email]||[]).filter(function(it){return it.s.code===g.code;});
         var key="g|"+sub.email+"|"+g.code,open=!!state.svOpen[key];
         var nt=its.filter(function(it){return !it.start&&!it.end&&!it.s.deadline&&!it.pr.deadline;}).length,ntNote=nt?'<span class="muted" style="font-size:10px;margin-left:4px">+'+nt+' be termino</span>':'';
-        namesHtml+='<div class="gn-row svclick'+(open?" open":"")+'" data-act="svtogg" data-key="'+esc(key)+'" title="Rodyti / slėpti darbų planą"><span class="caret">'+(open?"▾":"▸")+'</span>'+avatar(sub.name)+'<span class="gn-nm">'+esc(sub.name)+'</span>'+ntNote+'</div>';
+        var meTagG=(sub.email===state.meEmail)?' <span class="metag">(aš)</span>':'';
+        namesHtml+='<div class="gn-row svclick'+(open?" open":"")+'" data-act="svtogg" data-key="'+esc(key)+'" title="Rodyti / slėpti darbų planą"><span class="caret">'+(open?"▾":"▸")+'</span>'+avatar(sub.name)+'<span class="gn-nm">'+esc(sub.name)+'</span>'+meTagG+ntNote+'</div>';
         var bars=its.filter(function(it){return it.start||it.end;}).map(function(it){var s=it.start||it.end,e=it.end||it.start;
           var left=Math.max(0,px(s)),w=Math.max(PXD,px(e)-px(s)+PXD);var n=daysBetween(today,new Date(e+"T00:00:00"));var tone=n<0?"red":n<=7?"amber":"green";
           var tip="Nr. "+esc(it.pr.id)+" — "+esc(it.s.name)+" · "+(it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")+" · "+nfD(it.hours)+" d.";
