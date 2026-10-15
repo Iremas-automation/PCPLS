@@ -534,8 +534,12 @@ function canAdmin(){return myTabKeys().indexOf("admin")>=0;}
 
 /* mapina žalius sąrašų įrašus į programos struktūrą */
 function assemble(raw){
-  // Seni (pereinamojo laikotarpio) projektai: Nr. -> pavadinimas, iš „SeniProjektai" sąrašo
-  LEGACY={}; (raw.seniProjektai||[]).forEach(function(f){var nr=String(F(f,"ProjektoNr")||"").trim();var nm=String(f.Pavadinimas||"").trim();if(nr&&nm)LEGACY[nr]=nm;});
+  // Seni (pereinamojo laikotarpio) projektai: Nr. -> pavadinimas, iš „SeniProjektai" sąrašo.
+  // Numeris skaitomas tolerantiškai: ProjektoNr / iškraipyti SharePoint vidiniai pavadinimai / Title.
+  LEGACY={}; (raw.seniProjektai||[]).forEach(function(f){
+    var nr=String(f.ProjektoNr||f.Nr||f["Projekto_x0020_Nr_x002e_"]||f["Projekto_x0020_Nr_x002E_"]||f["Projekto_x0020_Nr"]||f.Title||"").trim();
+    var nm=String(f.Pavadinimas||f.Title_pavadinimas||"").trim();
+    if(nr&&nm&&nr!==nm)LEGACY[nr]=nm;});
   PEOPLE = raw.darbuotojai.map(function(f,i){
     var _dp=String(f.Skyrius||"").split(/[,;]+/).map(function(s){return s.trim();}).filter(Boolean);
     return { name:F(f,"Vardas"), email:(f.ElPastas||"").toLowerCase(), role:roleKey(f.Role), roleRaw:f.Role||"",
