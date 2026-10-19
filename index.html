@@ -1218,10 +1218,12 @@ function viewModal(){
      '<button class="btn primary wide" data-act="saveteam" data-sp="'+esc(m.sp||"")+'">Išsaugoti</button></div>';
   } else if(m.type==="stageedit"){
     var subChk=m.svc?'':'<label class="chk" style="margin:-2px 0 12px"><input type="checkbox" id="se-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>';
-    inner='<div class="form"><h3>Redaguoti dalį</h3><p class="sub">'+esc(selProject().name)+' · '+esc(skyriusName(m.code))+'</p>'+
+    var nameFld=m.svc?'<label class="field"><span class="eyebrow">Paslaugos pavadinimas</span><input class="inp" id="se-name" value="'+esc(m.code||"")+'" placeholder="pvz. Viešinimas, PAV atranka, Topografija, SLD"></label>':'';
+    inner='<div class="form"><h3>Redaguoti '+(m.svc?'paslaugą':'dalį')+'</h3><p class="sub">'+esc(selProject().name)+(m.svc?'':' · '+esc(skyriusName(m.code)))+'</p>'+
+     nameFld+
      priceSectionHtml("se",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+
-     '<label class="field"><span class="eyebrow">Dalies terminas</span>'+dField("se-due",m.due,"inp")+'</label>'+subChk+
-     '<p class="sub" style="margin-top:2px">Darbuotojus daliai priskiria skyriaus vadovas skiltyje „Skyriaus darbai".</p>'+
+     '<label class="field"><span class="eyebrow">'+(m.svc?'Terminas':'Dalies terminas')+'</span>'+dField("se-due",m.due,"inp")+'</label>'+subChk+
+     (m.svc?'':'<p class="sub" style="margin-top:2px">Darbuotojus daliai priskiria skyriaus vadovas skiltyje „Skyriaus darbai".</p>')+
      '<button class="btn primary wide" data-act="savestageedit">Išsaugoti</button></div>';
   } else if(m.type==="assign"){var apr=projById(m.pid)||{};var ast=((apr.stages||[]).find(function(s){return s.code===m.code;}))||{};var aex=m.email?((ast.pris||[]).find(function(p){return p.email===m.email;})):null;
     var popts=m.email?('<option value="'+esc((personByEmail(m.email)||{}).name||m.email)+'" selected>'+esc((personByEmail(m.email)||{}).name||m.email)+'</option>')
@@ -1372,9 +1374,18 @@ async function saveStage(){var p=selProject();var mm=state.modal||{};var svc=mm.
 async function saveStageEdit(){var p=selProject();var m=state.modal;var st=(p.stages||[]).find(function(s){return s.code===m.code;});if(!st){state.modal=null;render();return;}
   var sale=readSale("se",m.priceMode,skyriusRate(m.code));var days=sale.days,price=sale.price;var due=val("se-due");
   var subE=document.getElementById("se-sub");var isub=!isSvc(m.code)&&!!(subE&&subE.checked);
+  var newCode=m.code;
+  if(m.svc){var nv=(val("se-name")||"").trim();if(!nv){alert("Įvesk paslaugos pavadinimą.");return;}
+    if(nv!==m.code&&(p.stages||[]).some(function(s){return s.code===nv;})){alert("Tokia dalis ar paslauga jau yra šiame projekte.");return;}
+    newCode=nv;}
   state.modal=null;
   await withSave(async function(){
-    if(st.spId) await patchItem(L.dalys,st.spId,{ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:isub?"Taip":null});
+    if(st.spId) await patchItem(L.dalys,st.spId,{SkyriausKodas:newCode,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:isub?"Taip":null});
+    if(newCode!==m.code){
+      var jobs=[];state.regs.forEach(function(r){if(r.pid===p.id&&r.code===m.code){r.code=newCode;if(r.spId)jobs.push(r.spId);}});
+      for(var i=0;i<jobs.length;i++){ await patchItem(L.darboLaikas,jobs[i],{SkyriausKodas:newCode}); }
+      st.code=newCode; st.name=skyriusName(newCode);
+    }
     st.soldDays=days;st.soldPrice=price;st.deadline=dOnly(due);st.sub=isub;
   });
 }
