@@ -241,8 +241,16 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gpd{position:absolute;top:50%;transform:translateY(-50%);height:18px;z-index:1;box-sizing:border-box;border-right:1px solid rgba(255,255,255,.6);}
 .gpd.green{background:var(--green);}.gpd.amber{background:var(--amber);}.gpd.red{background:var(--red);}
 .gpd:first-of-type{border-top-left-radius:4px;border-bottom-left-radius:4px;}
-.gterm{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--steel-700);z-index:3;}
+.gterm{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--steel-700);z-index:4;}
 .gterm:before{content:"";position:absolute;top:2px;left:-4px;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid var(--steel-700);}
+/* projekto trukmės fonas (kol projektas vyksta) */
+.gdur{position:absolute;top:4px;bottom:4px;border-radius:6px;z-index:0;border:1px solid;}
+.gdur.green{background:rgba(46,139,87,.12);border-color:rgba(46,139,87,.34);}
+.gdur.amber{background:rgba(192,132,34,.14);border-color:rgba(192,132,34,.38);}
+.gdur.red{background:rgba(192,58,43,.11);border-color:rgba(192,58,43,.34);}
+/* projekto pradžios žyma */
+.gstart{position:absolute;top:0;bottom:0;width:0;border-left:2px solid var(--green);z-index:4;}
+.gstart:before{content:"";position:absolute;top:2px;left:-1px;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:6px solid var(--green);}
 .asg-x{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--steel-200);color:var(--steel-600);font-size:13px;line-height:1;cursor:pointer;}
 .asg-x:hover{background:var(--red);color:#fff;}
 .dfield{position:relative;display:block;}
@@ -1018,7 +1026,7 @@ function viewSvWork(){
   // --- grafikas: priskyrimai su terminais ---
   var gBySub={};subs.forEach(function(sub){gBySub[sub.email]=[];});var gAny=0,ds=[];
   PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){
-    if(codes.indexOf(s.code)<0)return;var dl=s.deadline||pr.deadline;(s.pris||[]).forEach(function(p){if(gBySub[p.email]!=null){gBySub[p.email].push({pr:pr,s:s,start:p.start,end:p.end,hours:p.hours});if(p.start||p.end||dl){gAny++;if(p.start)ds.push(p.start);if(p.end)ds.push(p.end);if(dl)ds.push(dl);}}});});});
+    if(codes.indexOf(s.code)<0)return;var dl=s.deadline||pr.deadline;(s.pris||[]).forEach(function(p){if(gBySub[p.email]!=null){gBySub[p.email].push({pr:pr,s:s,start:p.start,end:p.end,hours:p.hours});if(p.start||p.end||dl){gAny++;if(p.start)ds.push(p.start);if(p.end)ds.push(p.end);if(dl)ds.push(dl);if(pr.start)ds.push(pr.start);}}});});});
   var ganttHtml;
   if(!gAny){ganttHtml='<div class="empty">Dar nėra priskirtų terminų. Priskirk darbą nurodydamas termino pradžią/pabaigą — jie atsiras grafike.</div>';}
   else{
@@ -1033,12 +1041,14 @@ function viewSvWork(){
     var tdx=px(isoD(today)),todayLine=(tdx>=0&&tdx<=totalW)?'<div class="gtoday" style="left:'+tdx+'px"></div>':'';
     function planDays(endIso,n){var out=[];if(!endIso||n<=0)return out;var d=new Date(endIso+"T00:00:00"),guard=0;while(out.length<n&&guard<500){var wd=d.getDay();if(wd!==0&&wd!==6)out.unshift(isoD(d));d.setDate(d.getDate()-1);guard++;}return out;}
     // vieno projekto plano juosta (laiko pusė): langas + suplanuotos dienos iki projekto termino + termino žyma
-    function projTrack(it){var dl=it.s.deadline||it.pr.deadline||it.end;var n=dl?daysBetween(today,new Date(dl+"T00:00:00")):99,tone=n<0?"red":n<=7?"amber":"green";
-      var win="";if(it.start&&it.end){var l=Math.max(0,px(it.start)),w=Math.max(PXD,px(it.end)-px(it.start)+PXD);win='<div class="gwin" style="left:'+l+'px;width:'+w+'px"></div>';}
+    function projTrack(it){var dl=it.s.deadline||it.pr.deadline||it.end;var ps=it.pr.start||it.start;var n=dl?daysBetween(today,new Date(dl+"T00:00:00")):99,tone=n<0?"red":n<=7?"amber":"green";
+      // projekto trukmės fonas: nuo projekto pradžios iki termino (kitos spalvos langeliai, kol projektas vyksta)
+      var dur="";if(ps&&dl){var dL=Math.max(0,px(ps)),dR=Math.min(totalW,px(dl)+PXD);if(dR>dL)dur='<div class="gdur '+tone+'" style="left:'+dL+'px;width:'+(dR-dL)+'px" title="Projekto trukmė '+fmtLT(ps)+' – '+fmtLT(dl)+'"></div>';}
       var pd=Math.round((it.hours||0)/CAP),days=planDays(dl,pd);
-      var cells=days.map(function(ds){var x=px(ds);if(x<0||x>totalW-1)return "";return '<div class="gpd '+tone+'" style="left:'+x+'px;width:'+PXD+'px" title="Suplanuota '+nfD(it.hours)+' d. iki projekto termino '+(dl?fmtLT(dl):"?")+'"></div>';}).join("");
+      var cells=days.map(function(ds){var x=px(ds);if(x<0||x>totalW-1)return "";return '<div class="gpd '+tone+'" style="left:'+x+'px;width:'+PXD+'px" title="Suplanuota '+nfD(it.hours)+' d. iki termino '+(dl?fmtLT(dl):"?")+'"></div>';}).join("");
+      var startM=ps?('<div class="gstart" style="left:'+px(ps)+'px" title="Projekto pradžia '+fmtLT(ps)+'"></div>'):"";
       var term=dl?('<div class="gterm" style="left:'+(px(dl)+PXD)+'px" title="Projekto terminas '+fmtLT(dl)+'"></div>'):"";
-      return '<div class="gtrack">'+todayLine+win+cells+term+'</div>';}
+      return '<div class="gtrack">'+todayLine+dur+cells+startM+term+'</div>';}
     function projName(it){var dl=it.s.deadline||it.pr.deadline||it.end;
       return '<span class="gh-nr">Nr. '+esc(it.pr.id)+'</span> <span class="muted" style="font-size:10px">'+nfD(it.hours)+' d.'+(dl?' · iki '+fmtLT(dl):"")+'</span>';}
     function dlOf(it){return it.s.deadline||it.pr.deadline||it.end||"";}
@@ -1089,7 +1099,7 @@ function viewSvWork(){
   var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span>'+svSortBtn+'</div>'+partsTable+'</div>';
   var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
   var zoomCtl='<div class="gzoom"><span class="eyebrow" style="letter-spacing:0;text-transform:none">Mastelis</span><button class="btn sm" data-act="gzoom" data-d="-1" title="Mažinti — daugiau mėnesių">–</button><button class="btn sm" data-act="gzoom" data-d="1" title="Didinti — daugiau detalių">+</button></div>';
-  var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span>'+zoomCtl+'</div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
+  var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span>'+zoomCtl+'</div>'+ganttHtml+'<div class="legend"><span>Spalva pagal terminą (žalia / geltona ≤7 d. / raudona pradelsta). Išskleidus darbuotoją: nuspalvintas fonas — projekto trukmė (▶ pradžia … ▼ terminas), užpildyti langeliai — suplanuotos dienos. Mėlyna linija — šiandien.</span></div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+seg+svBody+'</div>';
 }
