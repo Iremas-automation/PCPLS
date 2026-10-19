@@ -511,7 +511,7 @@ var TAB_LT={projektai:"Projektai",mine:"Mano projektai",svwork:"Skyriaus darbai"
 var PEOPLE=[], SKYRIAI=[], PROJECTS=[];
 var state={ phase:"boot", err:null, warn:null, view:"list", tab:"projektai",
             selId:null, pelId:null, me:null, meEmail:null,
-            fFrom:isoD(new Date(today.getFullYear(),today.getMonth(),1)), fTo:isoD(new Date(today.getFullYear(),today.getMonth()+1,0)), fUser:"all", fProj:"all", sortBy:"deadline", tsOff:0, statOff:0, collapsed:{}, svOpen:{}, ganttPx:8, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
+            fFrom:isoD(new Date(today.getFullYear(),today.getMonth(),1)), fTo:isoD(new Date(today.getFullYear(),today.getMonth()+1,0)), fUser:"all", fProj:"all", sortBy:"deadline", svSort:"deadline", tsOff:0, statOff:0, collapsed:{}, svOpen:{}, ganttPx:8, statView:"load", showClosed:false, modal:null, draft:null, saving:false, regs:[] };
 
 function person(n){return PEOPLE.find(function(p){return p.name===n;});}
 function personByEmail(e){e=(e||"").toLowerCase();return PEOPLE.find(function(p){return (p.email||"").toLowerCase()===e;});}
@@ -956,7 +956,12 @@ function viewSvWork(){
   parts.sort(function(a,b){return new Date((a.s.deadline||a.pr.deadline||"2100"))-new Date((b.s.deadline||b.pr.deadline||"2100"));});
   var byP={},order=[];
   parts.forEach(function(x){if(!byP[x.pr.id]){byP[x.pr.id]=[];order.push(x.pr);}byP[x.pr.id].push(x.s);});
-  order.sort(function(a,b){return new Date(a.deadline||"2100")-new Date(b.deadline||"2100");});
+  var svSort=state.svSort||"deadline";
+  order.sort(function(a,b){
+    if(svSort==="nr"){var na=parseInt(a.id,10),nb=parseInt(b.id,10);if(!isNaN(na)&&!isNaN(nb)&&na!==nb)return na-nb;return String(a.id).localeCompare(String(b.id));}
+    if(svSort==="name"){return String(a.name||"").localeCompare(String(b.name||""),"lt");}
+    return new Date(a.deadline||"2100")-new Date(b.deadline||"2100");});
+  var svSortBtn='<button class="btn sm" data-act="svsort">Rikiuoti: '+(svSort==="nr"?"pagal Nr.":svSort==="name"?"pagal pavadinimą":"pagal terminą")+'</button>';
   var svColHead='<div class="prowh"><span>Dalis</span><span>Terminas</span><span class="r">Parduota</span><span class="r">Paskirta</span><span>Atsakingi</span></div>';
   var partsTable=order.length?('<div class="ptblwrap"><div class="ptbl svwt">'+svColHead+order.map(function(pr){
     var col=!!state.collapsed["svp:"+pr.id]; var st=statusOf(pr);
@@ -1079,7 +1084,7 @@ function viewSvWork(){
   var svv=state.svView||"assign";
   var segs=[["assign","Projekto paskyrimas"],["schedule","Pavaldinių grafikas"],["load","Pavaldinių užimtumas"]];
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
-  var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span></div>'+partsTable+'</div>';
+  var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span>'+svSortBtn+'</div>'+partsTable+'</div>';
   var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
   var zoomCtl='<div class="gzoom"><span class="eyebrow" style="letter-spacing:0;text-transform:none">Mastelis</span><button class="btn sm" data-act="gzoom" data-d="-1" title="Mažinti — daugiau mėnesių">–</button><button class="btn sm" data-act="gzoom" data-d="1" title="Didinti — daugiau detalių">+</button></div>';
   var scheduleSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas — priskirti darbų terminai</span>'+zoomCtl+'</div>'+ganttHtml+'<div class="legend"><span>Juostos spalva pagal pabaigos terminą (žalia / geltona ≤7 d. / raudona pradelsta). Mėlyna linija — šiandien.</span></div></div>';
@@ -1542,6 +1547,7 @@ document.addEventListener("click",function(e){
   else if(a==="reopen"){setStatus("active");}
   else if(a==="delproject"){deleteProject();}
   else if(a==="togglesort"){state.sortBy=(state.sortBy==="deadline"?"pv":state.sortBy==="pv"?"nr":"deadline");render();}
+  else if(a==="svsort"){state.svSort=(state.svSort==="deadline"?"nr":state.svSort==="nr"?"name":"deadline");render();}
   else if(a==="togglegroup"){var gk=el.getAttribute("data-g");state.collapsed[gk]=!state.collapsed[gk];render();}
   else if(a==="statview"){state.statView=el.getAttribute("data-v");render();}
   else if(a==="svview"){state.svView=el.getAttribute("data-v");if(state.svView==="schedule")state._ganttJump=true;render();}
