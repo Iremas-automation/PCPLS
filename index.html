@@ -553,6 +553,8 @@ function assemble(raw){
              inProjects:(function(){var s=String(f.Projektuose||"").toLowerCase();return s?(s.indexOf("taip")>=0||s==="1"||s==="true"||s==="yes"):(roleKey(f.Role)!=="ADMIN");})(),
              hue:(i*47+200)%360, spId:f.__id };
   });
+  // visur darbuotojų sąrašai rodomi abėcėlės tvarka (hue jau priskirtas, spalvos nesikeičia)
+  PEOPLE.sort(function(a,b){return (a.name||"").localeCompare(b.name||"","lt",{sensitivity:"base"});});
   SKYRIAI = raw.skyriai.map(function(f){
     return { code:F(f,"Kodas"), name:f.Pavadinimas||F(f,"Kodas"), head:(f.VadovoElPastas||"").toLowerCase(), rate:numOr(f.DienosIkainis,230), spId:f.__id };
   });
