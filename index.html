@@ -220,7 +220,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gmseg{position:absolute;top:0;height:20px;display:flex;align-items:center;padding-left:6px;font-size:10px;font-weight:700;color:var(--steel-700);border-left:1px solid var(--line);white-space:nowrap;overflow:hidden;box-sizing:border-box;}
 .gdrow{position:relative;height:19px;}
 .gday{position:absolute;top:0;height:19px;display:flex;align-items:center;justify-content:center;font-size:9px;color:var(--steel-500);border-left:1px solid var(--line);font-family:var(--mono);box-sizing:border-box;}
-.gday.we{background:rgba(30,40,50,.055);}
+.gday.we{background:rgba(70,82,96,.14);color:var(--steel-600);}
 .gday.td{background:var(--blue);color:#fff;font-weight:700;}
 .gweek{position:absolute;top:0;height:19px;display:flex;align-items:center;padding-left:4px;font-size:9px;color:var(--steel-500);border-left:1px solid var(--line);font-family:var(--mono);box-sizing:border-box;white-space:nowrap;}
 .gweek.td{color:var(--blue);font-weight:700;background:rgba(30,94,140,.08);}
@@ -237,6 +237,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .gbar{position:absolute;top:50%;transform:translateY(-50%);height:21px;border-radius:5px;display:flex;align-items:center;padding:0 6px;font-size:10px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.18);cursor:default;z-index:1;}
 .gbar.green{background:var(--green);}.gbar.amber{background:var(--amber);}.gbar.red{background:var(--red);}
 .gtoday{position:absolute;top:0;bottom:0;width:2px;background:var(--blue);opacity:.75;z-index:2;}
+.gwe{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,rgba(70,82,96,.10) 0 4px,rgba(70,82,96,.04) 4px 8px);z-index:0;pointer-events:none;}
 .gwin{position:absolute;top:50%;transform:translateY(-50%);height:22px;border-radius:5px;background:rgba(30,94,140,.08);border:1px dashed rgba(30,94,140,.35);z-index:0;}
 .gpd{position:absolute;top:50%;transform:translateY(-50%);height:18px;z-index:1;box-sizing:border-box;border-right:1px solid rgba(255,255,255,.6);}
 .gpd.green{background:var(--green);}.gpd.amber{background:var(--amber);}.gpd.red{background:var(--red);}
@@ -1039,8 +1040,11 @@ function viewSvWork(){
     var totalW=span*PXD,rowCols='grid-template-columns:'+NAMEW+'px '+totalW+'px';
     function px(dstr){return daysBetween(fromDt,new Date(dstr+"T00:00:00"))*PXD;}
     var tdx=px(isoD(today)),todayLine=(tdx>=0&&tdx<=totalW)?'<div class="gtoday" style="left:'+tdx+'px"></div>':'';
+    // savaitgalių stulpeliai (tik dienų mastelyje) — kad aiškiai matytųsi
+    var weHtml="";if(showDays){for(var wi=0;wi<span;wi++){var wdt=new Date(fromDt);wdt.setDate(wdt.getDate()+wi);var ww=wdt.getDay();if(ww===0||ww===6)weHtml+='<div class="gwe" style="left:'+(wi*PXD)+'px;width:'+PXD+'px"></div>';}}
+    var trackBg=weHtml+todayLine;
     function planDays(endIso,n){var out=[];if(!endIso||n<=0)return out;var d=new Date(endIso+"T00:00:00"),guard=0;while(out.length<n&&guard<500){var wd=d.getDay();if(wd!==0&&wd!==6)out.unshift(isoD(d));d.setDate(d.getDate()-1);guard++;}return out;}
-    // darbo dienos lange [startIso..endIso], nuo pradžios pirmyn, iki n dienų (neperžengiant lango)
+    // DARBO dienos lange [startIso..endIso], nuo pradžios pirmyn (savaitgaliai praleidžiami), iki n dienų (neperžengiant lango)
     function planDaysIn(startIso,endIso,n){var out=[];if(!startIso)return out;var d=new Date(startIso+"T00:00:00"),end=endIso?new Date(endIso+"T00:00:00"):null,lim=(n&&n>0)?n:9999,guard=0;while(out.length<lim&&guard<800){if(end&&d>end)break;var wd=d.getDay();if(wd!==0&&wd!==6)out.push(isoD(d));d.setDate(d.getDate()+1);guard++;}return out;}
     // vieno PROJEKTO juosta (viena eilutė) — gali turėti kelis to paties darbuotojo terminus (gabalus)
     function projGroupTrack(pr,items){
@@ -1060,7 +1064,7 @@ function viewSvWork(){
         return win+cells;}).join("");
       var startM=ps?('<div class="gstart" style="left:'+px(ps)+'px" title="Projekto pradžia '+fmtLT(ps)+'"></div>'):"";
       var term=dl?('<div class="gterm" style="left:'+(px(dl)+PXD)+'px" title="Projekto terminas '+fmtLT(dl)+'"></div>'):"";
-      return '<div class="gtrack">'+todayLine+dur+segs+startM+term+'</div>';}
+      return '<div class="gtrack">'+trackBg+dur+segs+startM+term+'</div>';}
     function projGroupName(pr,items){var totH=items.reduce(function(a,i){return a+(i.hours||0);},0);
       var dl=pr.deadline||(items[0]&&items[0].s&&items[0].s.deadline)||(items[0]&&items[0].end);
       var info=items.length>1?(' · '+items.length+' term.'):(function(){var it=items[0]||{};return (it.start||it.end)?(' · '+(it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")):(dl?' · iki '+fmtLT(dl):"");})();
@@ -1082,7 +1086,7 @@ function viewSvWork(){
           var left=Math.max(0,px(s)),w=Math.max(PXD,px(e)-px(s)+PXD);var n=daysBetween(today,new Date(e+"T00:00:00"));var tone=n<0?"red":n<=7?"amber":"green";
           var tip="Nr. "+esc(it.pr.id)+" — "+esc(it.s.name)+" · "+(it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")+" · "+nfD(it.hours)+" d.";
           return '<div class="gbar '+tone+'" style="left:'+left+'px;width:'+w+'px" title="'+tip+'">'+esc(it.pr.id)+" · "+esc(it.s.name)+'</div>';}).join("");
-        timeHtml+='<div class="gt-row"><div class="gtrack">'+todayLine+bars+'</div></div>';
+        timeHtml+='<div class="gt-row"><div class="gtrack">'+trackBg+bars+'</div></div>';
         if(open){
           var dets=its.filter(function(it){return it.start||it.end||it.s.deadline||it.pr.deadline;});
           // grupuojam pagal projektą — to paties projekto terminai rodomi VIENOJE eilutėje
@@ -1092,7 +1096,7 @@ function viewSvWork(){
           if(prOrder.length){prOrder.forEach(function(pr2){var items=byPr[pr2.id];
             namesHtml+='<div class="gn-sub">'+projGroupName(pr2,items)+'</div>';
             timeHtml+='<div class="gt-sub">'+projGroupTrack(pr2,items)+'</div>';});}
-          else{namesHtml+='<div class="gn-sub muted">be terminų</div>';timeHtml+='<div class="gt-sub"><div class="gtrack">'+todayLine+'</div></div>';}
+          else{namesHtml+='<div class="gn-sub muted">be terminų</div>';timeHtml+='<div class="gt-sub"><div class="gtrack">'+trackBg+'</div></div>';}
         }
       });
     });
