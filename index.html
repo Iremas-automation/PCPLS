@@ -1060,8 +1060,10 @@ function viewSvWork(){
       var segs=items.map(function(it){var anchor=it.end||dl;var n=anchor?daysBetween(today,new Date(anchor+"T00:00:00")):99,tone=n<0?"red":n<=7?"amber":"green";
         var win="";if(it.start&&it.end){var wl=Math.max(0,px(it.start)),wr=Math.min(totalW,px(it.end)+PXD);if(wr>wl)win='<div class="gwin" style="left:'+wl+'px;width:'+(wr-wl)+'px"></div>';}
         var pd=Math.round((it.hours||0)/CAP);
-        // jei nurodytas darbo langas — dienas spalvinam LANGE (nuo pradžios pirmyn, neperžengiant pabaigos); kitaip — atgal nuo termino
-        var days=(it.start&&it.end)?planDaysIn(it.start,it.end,pd):planDays(anchor,pd);
+        // spalvinam VISĄ turimą langą iki termino (ne tik priskirtų valandų dienas) —
+        // darbuotojas gali dirbti ne pilnas dienas ar pats nuspręsti, kada atliks darbus.
+        var segStart=it.start||ps, segEnd=it.end||dl;
+        var days=(segStart&&segEnd)?planDaysIn(segStart,segEnd):planDays(anchor,pd);
         var cells=days.map(function(ds){var x=px(ds);if(x<0||x>totalW-1)return "";return '<div class="gpd '+tone+'" style="left:'+x+'px;width:'+PXD+'px" title="Suplanuota '+nfD(it.hours)+' d. '+((it.start||it.end)?((it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")):('iki '+(anchor?fmtLT(anchor):"?")))+'"></div>';}).join("");
         return win+cells;}).join("");
       var startM=ps?('<div class="gstart" style="left:'+px(ps)+'px" title="Projekto pradžia '+fmtLT(ps)+'"></div>'):"";
