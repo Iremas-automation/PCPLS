@@ -1040,6 +1040,8 @@ function viewSvWork(){
     function px(dstr){return daysBetween(fromDt,new Date(dstr+"T00:00:00"))*PXD;}
     var tdx=px(isoD(today)),todayLine=(tdx>=0&&tdx<=totalW)?'<div class="gtoday" style="left:'+tdx+'px"></div>':'';
     function planDays(endIso,n){var out=[];if(!endIso||n<=0)return out;var d=new Date(endIso+"T00:00:00"),guard=0;while(out.length<n&&guard<500){var wd=d.getDay();if(wd!==0&&wd!==6)out.unshift(isoD(d));d.setDate(d.getDate()-1);guard++;}return out;}
+    // darbo dienos lange [startIso..endIso], nuo pradžios pirmyn, iki n dienų (neperžengiant lango)
+    function planDaysIn(startIso,endIso,n){var out=[];if(!startIso)return out;var d=new Date(startIso+"T00:00:00"),end=endIso?new Date(endIso+"T00:00:00"):null,lim=(n&&n>0)?n:9999,guard=0;while(out.length<lim&&guard<800){if(end&&d>end)break;var wd=d.getDay();if(wd!==0&&wd!==6)out.push(isoD(d));d.setDate(d.getDate()+1);guard++;}return out;}
     // vieno PROJEKTO juosta (viena eilutė) — gali turėti kelis to paties darbuotojo terminus (gabalus)
     function projGroupTrack(pr,items){
       var s0=items[0]||{};var dl=pr.deadline||(s0.s&&s0.s.deadline)||s0.end;
@@ -1051,7 +1053,9 @@ function viewSvWork(){
       // kiekvienas terminas (gabalas) toje pačioje eilutėje: langas + suplanuotos dienos
       var segs=items.map(function(it){var anchor=it.end||dl;var n=anchor?daysBetween(today,new Date(anchor+"T00:00:00")):99,tone=n<0?"red":n<=7?"amber":"green";
         var win="";if(it.start&&it.end){var wl=Math.max(0,px(it.start)),wr=Math.min(totalW,px(it.end)+PXD);if(wr>wl)win='<div class="gwin" style="left:'+wl+'px;width:'+(wr-wl)+'px"></div>';}
-        var pd=Math.round((it.hours||0)/CAP),days=planDays(anchor,pd);
+        var pd=Math.round((it.hours||0)/CAP);
+        // jei nurodytas darbo langas — dienas spalvinam LANGE (nuo pradžios pirmyn, neperžengiant pabaigos); kitaip — atgal nuo termino
+        var days=(it.start&&it.end)?planDaysIn(it.start,it.end,pd):planDays(anchor,pd);
         var cells=days.map(function(ds){var x=px(ds);if(x<0||x>totalW-1)return "";return '<div class="gpd '+tone+'" style="left:'+x+'px;width:'+PXD+'px" title="Suplanuota '+nfD(it.hours)+' d. '+((it.start||it.end)?((it.start?fmtLT(it.start):"?")+"–"+(it.end?fmtLT(it.end):"?")):('iki '+(anchor?fmtLT(anchor):"?")))+'"></div>';}).join("");
         return win+cells;}).join("");
       var startM=ps?('<div class="gstart" style="left:'+px(ps)+'px" title="Projekto pradžia '+fmtLT(ps)+'"></div>'):"";
