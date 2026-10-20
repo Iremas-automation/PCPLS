@@ -585,6 +585,8 @@ function assemble(raw){
                deadline:dOnly(d.DaliesTerminas), resp:respName, assignees:emails, pris:pris, prisIds:pris.map(function(x){return x.spId;}),
                sub:(String(d.Subranga||"").toLowerCase().indexOf("taip")>=0)||d.Subranga===true, spId:d.__id };
     });
+    // projekto dalys visur rodomos abėcėlės tvarka (grupės „skyrių dalys" / „paslaugos" atskiriamos atskirai)
+    stages.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"lt",{sensitivity:"base"});});
     return { id:pn, name:f.Pavadinimas||pn, deadline:dOnly(f.Terminas), start:dOnly(f.Pradzia),
              status:((f.Busena||"").toLowerCase().indexOf("uždar")>=0||(f.Busena||"").toLowerCase().indexOf("uzdar")>=0)?"closed":"active",
              pm:(f.VadovoElPastas||"").toLowerCase(),
