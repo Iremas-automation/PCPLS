@@ -567,6 +567,8 @@ function assemble(raw){
   SKYRIAI = raw.skyriai.map(function(f){
     return { code:F(f,"Kodas"), name:f.Pavadinimas||F(f,"Kodas"), head:(f.VadovoElPastas||"").toLowerCase(), rate:numOr(f.DienosIkainis,230), spId:f.__id };
   });
+  // skyriai visur rodomi abėcėlės tvarka (grupės grafike, užimtume, komandos lentelėje, sąrašuose)
+  SKYRIAI.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"lt",{sensitivity:"base"});});
   var dalysBy={}, tasksBy={}, revBy={}, subBy={}, prisBy={};
   raw.dalys.forEach(function(f){ var pn=F(f,"ProjektoNr"); (dalysBy[pn]=dalysBy[pn]||[]).push(f); });
   raw.uzduotys.forEach(function(f){ var pn=F(f,"ProjektoNr")||f.ProjektoNr; (tasksBy[pn]=tasksBy[pn]||[]).push(f); });
