@@ -979,7 +979,7 @@ function viewSvWork(){
   var svSortBtn='<button class="btn sm" data-act="svsort">Rikiuoti: '+(svSort==="nr"?"pagal Nr.":svSort==="name"?"pagal pavadinimą":"pagal terminą")+'</button>';
   var svColHead='<div class="prowh"><span>Dalis</span><span>Terminas</span><span class="r">Parduota</span><span class="r">Paskirta</span><span>Atsakingi</span></div>';
   var partsTable=order.length?('<div class="ptblwrap"><div class="ptbl svwt">'+svColHead+order.map(function(pr){
-    var col=!!state.collapsed["svp:"+pr.id]; var st=statusOf(pr);
+    var ck="svp:"+pr.id; if(state.collapsed[ck]===undefined)state.collapsed[ck]=true; /* pagal nutylėjimą suskleista */ var col=!!state.collapsed[ck]; var st=statusOf(pr);
     var hdr='<div class="pgh tone-'+st.tone+'" data-act="togglegroup" data-g="svp:'+esc(pr.id)+'"><span class="pgh-car">'+(col?"▸":"▾")+'</span><span class="pgh-lab"><span class="gh-nr">Nr. '+esc(pr.id)+'</span> '+esc(pr.name)+'</span><span class="pill '+st.tone+'">'+st.txt+'</span><span class="cnt">'+byP[pr.id].length+'</span></div>';
     var rows=col?'':byP[pr.id].map(function(s){
       var planH=stagePlanned(s),distH=(s.pris||[]).reduce(function(a,p){return a+(p.hours||0);},0);
