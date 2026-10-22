@@ -207,8 +207,8 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .trm-b{background:rgba(30,94,140,.16);color:#1a4a6b;}
 /* Gantt: dvi zonos — fiksuoti vardai (kairėje) + slenkama laiko juosta (dešinėje) */
 .gantt2{display:flex;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden;align-items:flex-start;}
-.gnames{flex:0 0 190px;width:190px;background:var(--panel);border-right:1px solid var(--line);position:relative;z-index:3;box-shadow:3px 0 6px -3px rgba(30,40,50,.22);max-height:max(360px,calc(100vh - 205px));overflow:hidden;}
-.gtime{flex:1 1 auto;min-width:0;max-height:max(360px,calc(100vh - 205px));overflow:auto;scrollbar-width:thin;scrollbar-color:var(--steel-400) var(--steel-100);overscroll-behavior:contain;}
+.gnames{flex:0 0 190px;width:190px;background:var(--panel);border-right:1px solid var(--line);position:relative;z-index:3;box-shadow:3px 0 6px -3px rgba(30,40,50,.22);max-height:max(340px,calc(100vh - 150px));overflow:hidden;}
+.gtime{flex:1 1 auto;min-width:0;max-height:max(340px,calc(100vh - 150px));overflow:auto;scrollbar-width:thin;scrollbar-color:var(--steel-400) var(--steel-100);overscroll-behavior:contain;}
 .gtime::-webkit-scrollbar{width:12px;}
 .gtime::-webkit-scrollbar{height:12px;}
 .gtime::-webkit-scrollbar-track{background:var(--steel-100);}
@@ -315,6 +315,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .hmname{font-size:12.5px;font-weight:600;white-space:normal;line-height:1.5;display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;}
 .legend{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap;font-size:10.5px;line-height:1.35;color:var(--steel-500);}
 .gsec{margin-bottom:8px;}.gsec .sec-bar{margin-bottom:6px;}
+.svhead{align-items:center;margin-bottom:12px;}
+.svhead-r{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
+.svhead .statseg{margin-bottom:0;}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px;}
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
 .statcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
@@ -1129,9 +1132,10 @@ function viewSvWork(){
   var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span>'+svSortBtn+'</div>'+partsTable+'</div>';
   var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
   var zoomCtl='<div class="gzoom"><span class="eyebrow" style="letter-spacing:0;text-transform:none">Mastelis</span><button class="btn sm" data-act="gzoom" data-d="-1" title="Mažinti — daugiau mėnesių">–</button><button class="btn sm" data-act="gzoom" data-d="1" title="Didinti — daugiau detalių">+</button></div>';
-  var scheduleSection='<div class="section gsec"><div class="sec-bar"><span class="eyebrow">Pavaldinių grafikas</span>'+zoomCtl+'</div>'+ganttHtml+'<div class="legend"><span>Spalva — terminas (žalia / geltona ≤7 d. / raudona pradelsta) · fonas — projekto trukmė (▶ pradžia, ▼ terminas) · užpildyta — suplanuotos dienos · mėlyna linija — šiandien.</span></div></div>';
+  var scheduleSection='<div class="section gsec">'+ganttHtml+'<div class="legend"><span>Spalva — terminas (žalia / geltona ≤7 d. / raudona pradelsta) · fonas — projekto trukmė (▶ pradžia, ▼ terminas) · užpildyta — suplanuotos dienos · mėlyna linija — šiandien.</span></div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
-  return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div>'+seg+svBody+'</div>';
+  var headExtra=(svv==="schedule")?zoomCtl:"";
+  return '<div class="pane"><div class="pane-head svhead"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div><div class="svhead-r">'+seg+headExtra+'</div></div>'+svBody+'</div>';
 }
 function viewStats(){
   var STAT=PEOPLE.filter(function(p){return p.inStats;});
