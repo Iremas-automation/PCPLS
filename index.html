@@ -949,7 +949,7 @@ function viewPelningumas(){
   if(!state.pelId||!projById(state.pelId))state.pelId=PROJECTS[0].id;
   var opts=PROJECTS.map(function(p){return '<option value="'+esc(p.id)+'"'+(p.id===state.pelId?" selected":"")+'>Nr. '+esc(p.id)+' — '+esc(p.name)+'</option>';}).join("");
   var p=projById(state.pelId);var pr=profit(p);
-  var revRows=(p.revenue||[]).map(function(r){return '<div class="gr row rev"><span>'+esc(r.title)+'</span><span class="mono muted">'+fmtLT(r.date)+'</span><span class="r mono">'+eur(r.sum)+'</span><span class="tk-del" data-act="delrev" data-sp="'+esc(r.spId||"")+'">'+IC.trash+'</span></div>';}).join("");
+  var revRows=(p.revenue||[]).map(function(r){return '<div class="gr row rev"><span>'+esc(r.title)+'</span><span class="mono muted">'+fmtLT(r.date)+'</span><span class="r mono">'+eur(r.sum)+'</span><span class="r" style="gap:8px"><span class="stg-edit" data-act="editrev" data-sp="'+esc(r.spId||"")+'" title="Redaguoti">'+IC.edit+'</span><span class="tk-del" data-act="delrev" data-sp="'+esc(r.spId||"")+'" title="Šalinti">'+IC.trash+'</span></span></div>';}).join("");
   var subRows=(p.subrangai||[]).map(function(r){var pc=r.code?'<span class="pill grey" style="margin-left:6px;font-size:10px;padding:2px 8px">'+esc(skyriusName(r.code))+'</span>':"";return '<div class="gr row rev"><span>'+esc(r.title)+pc+'</span><span class="mono muted">'+fmtLT(r.date)+'</span><span class="r mono">'+eur(r.sum)+'</span><span class="tk-del" data-act="delsub" data-sp="'+esc(r.spId||"")+'">'+IC.trash+'</span></div>';}).join("");
   function discRow(s){var c=stageCost(p,s),base=soldSumEff(p,s),subS=s.subSum||0,lik=base!=null?base-subS-c:null;
     var raw0=soldSum(p,s),dpct=(pr.scale-1)*100;
@@ -1333,12 +1333,13 @@ function viewModal(){
     inner='<div class="form"><h3>Keisti projekto vadovą</h3><p class="sub">Nr. '+esc(pp.id)+' · '+esc(pp.name)+'</p>'+
      '<label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="pm-email">'+pmOptions(pp.pm)+'</select></label>'+
      '<button class="btn primary wide" data-act="savepm">Išsaugoti</button></div>';
-  } else if(m.type==="rev"||m.type==="sub"){var isRev=m.type==="rev";
+  } else if(m.type==="rev"||m.type==="sub"){var isRev=m.type==="rev";var isEdit=isRev&&m.sp;
+    var vTitle=(m.t!=null)?esc(m.t):"", vSum=(m.s!=null?m.s:""), vDate=m.d||"", vRecalc=(m.rc!==false);
     var partSel="";
     if(!isRev){var pp=projById(state.pelId)||{};var sopt=(pp.stages||[]).filter(function(s){return s.soldPrice!=null||s.soldDays>0;}).map(function(s){return '<option value="'+esc(s.code)+'">'+esc(s.name)+(s.soldDays?(" — parduota "+nfD(stagePlanned(s))+" d."):"")+(s.soldPrice!=null?(" ("+eur(s.soldPrice)+")"):"")+'</option>';}).join("");
       partSel='<label class="field"><span class="eyebrow">Projekto dalis (nebūtina)</span><select class="inp" id="rv-code"><option value="">— nepriskirta —</option>'+sopt+'</select><span class="muted" style="font-size:12px;margin-top:4px;display:block">Priskyrus daliai su parduotomis dienomis, tos dalies parduotas biudžetas (dienos ir suma) sumažės subrangos suma.</span></label>';}
-    var recalcChk=isRev?'<label class="otchk"><input type="checkbox" id="rv-recalc" checked> Perskaičiuoti dalių įkainius pagal šią sumą</label><span class="muted" style="font-size:11.5px;display:block;margin:2px 0 2px">Skirtumas nuo komercinės sumos proporcingai paskirstomas per visas dalis ir paslaugas — įkainiai perskaičiuojami, parduotų dienų skaičius nekeičiamas.</span>':'';
-    inner='<div class="form"><h3>'+(isRev?"Sutartis / pajamos":"Subranga / išlaidos")+'</h3><p class="sub">'+esc((projById(state.pelId)||{}).name||"")+'</p><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="rv-title" placeholder="'+(isRev?"Sutarties Nr.":"Tiekėjas / sutartis")+'"></label>'+partSel+'<div class="two"><label class="field"><span class="eyebrow">Data</span>'+dField("rv-date","","inp")+'</label><label class="field"><span class="eyebrow">Suma be PVM, €</span><input class="inp" id="rv-sum" type="number" min="0" step="0.01" placeholder="0"></label></div>'+recalcChk+'<button class="btn primary wide" data-act="'+(isRev?"saverev":"savesub")+'">Pridėti</button></div>';
+    var recalcChk=isRev?'<label class="otchk"><input type="checkbox" id="rv-recalc"'+(vRecalc?" checked":"")+'> Perskaičiuoti dalių įkainius pagal šią sumą</label><span class="muted" style="font-size:11.5px;display:block;margin:2px 0 2px">Skirtumas nuo komercinės sumos proporcingai paskirstomas per visas dalis ir paslaugas — įkainiai perskaičiuojami, parduotų dienų skaičius nekeičiamas.</span>':'';
+    inner='<div class="form"><h3>'+(isRev?(isEdit?"Redaguoti sutartį":"Sutartis / pajamos"):"Subranga / išlaidos")+'</h3><p class="sub">'+esc((projById(state.pelId)||{}).name||"")+'</p><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="rv-title" value="'+vTitle+'" placeholder="'+(isRev?"Sutarties Nr.":"Tiekėjas / sutartis")+'"></label>'+partSel+'<div class="two"><label class="field"><span class="eyebrow">Data</span>'+dField("rv-date",vDate,"inp")+'</label><label class="field"><span class="eyebrow">Suma be PVM, €</span><input class="inp" id="rv-sum" type="number" min="0" step="0.01" value="'+vSum+'" placeholder="0"></label></div>'+recalcChk+'<button class="btn primary wide" data-act="'+(isRev?"saverev":"savesub")+'">'+(isEdit?"Išsaugoti":"Pridėti")+'</button></div>';
   } else if(m.type==="newproject"){wide=" wide";var d=state.draft;
     var stages=d.stages.map(function(s,i){var svc=s.kind==="svc";
       return '<div class="stage-ed"><div class="ed-top"><span class="ed-idx">'+(svc?"Paslauga":"Skyriaus dalis")+' '+(i+1)+'</span><button class="iconbtn" data-act="draft-delstage" data-i="'+i+'">'+IC.trash+'</button></div>'+
@@ -1531,9 +1532,12 @@ async function saveTeam(sp){
   });
 }
 async function delTask(sp){var p=selProject();state.modal=null;await withSave(async function(){if(sp)await delItem(L.uzduotys,sp);p.tasks=p.tasks.filter(function(t){return String(t.spId)!==String(sp);});});}
-async function saveRevSub(isRev){var t=document.getElementById("rv-title").value.trim(),date=document.getElementById("rv-date").value,sum=Number(document.getElementById("rv-sum").value)||0;var code=isRev?"":((document.getElementById("rv-code")||{}).value||"").trim();var recalc=isRev?!!(document.getElementById("rv-recalc")&&document.getElementById("rv-recalc").checked):false;if(!t){alert("Įvesk pavadinimą.");return;}var p=projById(state.pelId);state.modal=null;
+async function saveRevSub(isRev){var t=document.getElementById("rv-title").value.trim(),date=document.getElementById("rv-date").value,sum=Number(document.getElementById("rv-sum").value)||0;var code=isRev?"":((document.getElementById("rv-code")||{}).value||"").trim();var recalc=isRev?!!(document.getElementById("rv-recalc")&&document.getElementById("rv-recalc").checked):false;if(!t){alert("Įvesk pavadinimą.");return;}var p=projById(state.pelId);var editSp=(isRev&&state.modal&&state.modal.sp)?state.modal.sp:null;state.modal=null;
   await withSave(async function(){
-    if(isRev){var res=await addItem(L.sutartys,{Title:p.id,ProjektoNr:p.id,Sutartis:t,Data:spDate(date),SumaBePVM:sum,Perskaiciuoti:recalc});p.revenue.push({title:t,date:dOnly(date),sum:sum,recalc:recalc,spId:res.id});}
+    if(isRev){
+      if(editSp){ await patchItem(L.sutartys,editSp,{Sutartis:t,Data:spDate(date),SumaBePVM:sum,Perskaiciuoti:recalc}); var ex=(p.revenue||[]).find(function(x){return String(x.spId)===String(editSp);}); if(ex){ex.title=t;ex.date=dOnly(date);ex.sum=sum;ex.recalc=recalc;} }
+      else { var res=await addItem(L.sutartys,{Title:p.id,ProjektoNr:p.id,Sutartis:t,Data:spDate(date),SumaBePVM:sum,Perskaiciuoti:recalc});p.revenue.push({title:t,date:dOnly(date),sum:sum,recalc:recalc,spId:res.id}); }
+    }
     else{var r2=await addItem(L.subrangai,{Title:p.id,ProjektoNr:p.id,Tiekejas:t,Data:spDate(date),SumaBePVM:sum,SkyriausKodas:code||null});p.subrangai.push({title:t,date:dOnly(date),sum:sum,code:code||null,spId:r2.id});recalcStageSub(p);}
   });
 }
@@ -1678,6 +1682,7 @@ document.addEventListener("click",function(e){
   else if(a==="clearabs"){clearAbsence(el.getAttribute("data-date"));}
   else if(a==="clearfilters"){state.fFrom=isoD(new Date(today.getFullYear(),today.getMonth(),1));state.fTo=isoD(new Date(today.getFullYear(),today.getMonth()+1,0));state.fUser="all";state.fProj="all";render();}
   else if(a==="addrev"){state.modal={type:"rev"};render();}
+  else if(a==="editrev"){var esp=el.getAttribute("data-sp");var pp=projById(state.pelId);var rr=((pp&&pp.revenue)||[]).find(function(x){return String(x.spId)===String(esp);});if(rr)state.modal={type:"rev",sp:esp,t:rr.title,d:rr.date,s:rr.sum,rc:rr.recalc};render();}
   else if(a==="addsub"){state.modal={type:"sub"};render();}
   else if(a==="saverev"){saveRevSub(true);}
   else if(a==="savesub"){saveRevSub(false);}
