@@ -1063,11 +1063,13 @@ function viewSvWork(){
     ds.sort();var PXD=state.ganttPx||8,NAMEW=190,LTMN=["Sausis","Vasaris","Kovas","Balandis","Gegužė","Birželis","Liepa","Rugpjūtis","Rugsėjis","Spalis","Lapkritis","Gruodis"];
     var showDays=PXD>=16,gstep=showDays?PXD:7*PXD;
     // pilnas duomenų ruožas; fokusas į šią savaitę atliekamas auto-poslinkiu (žr. render)
-    var fromDt=addDays(new Date(ds[0]+"T00:00:00"),-3),toDt=addDays(new Date(ds[ds.length-1]+"T00:00:00"),5);
-    if(today<fromDt)fromDt=addDays(new Date(today),-3); if(today>toDt)toDt=addDays(new Date(today),5);
+    var dFrom=new Date(ds[0]+"T00:00:00"),dTo=new Date(ds[ds.length-1]+"T00:00:00");
+    if(today<dFrom)dFrom=new Date(today); if(today>dTo)dTo=new Date(today);
+    // ~2 savaitės atsargos iš abiejų pusių — visada galima pavažiuoti ir atgal (praeitin), ir pirmyn
+    var fromDt=addDays(dFrom,-14),toDt=addDays(dTo,14);
     var span=Math.max(42,daysBetween(fromDt,toDt));
-    // grafikas visada užpildo matomą plotį: mažinant mastelį matosi daugiau dienų, o ne tuščia vieta dešinėje
-    var _vw=(typeof window!=="undefined"&&window.innerWidth)?window.innerWidth:1280, _fill=Math.ceil(Math.max(600,_vw-290)/PXD);
+    // turinys visada platesnis už matomą plotį: slinkties juosta yra visuose masteliuose, o mažinant mastelį matosi daugiau dienų
+    var _vw=(typeof window!=="undefined"&&window.innerWidth)?window.innerWidth:1280, _fill=Math.ceil(Math.max(600,_vw-290)/PXD*1.25);
     if(span<_fill)span=_fill;
     toDt=addDays(fromDt,span);
     var totalW=span*PXD,rowCols='grid-template-columns:'+NAMEW+'px '+totalW+'px';
