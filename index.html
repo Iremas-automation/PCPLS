@@ -1701,7 +1701,24 @@ document.addEventListener("click",function(e){
   else if(a==="draft-delstage"){snapshotDraft();state.draft.stages.splice(Number(el.getAttribute("data-i")),1);if(!state.draft.stages.length)state.draft.stages.push({kind:"dept",code:"",days:"",due:"",sum:""});render();}
   else if(a==="create"){createProject();}
 });
+// priskyrimo modale: užpildžius vieną datą (ar dienų skaičių) — kita data užsipildo pati
+function assignAutofill(src){
+  var sEl=document.getElementById("as-start"),eEl=document.getElementById("as-end"),dEl=document.getElementById("as-days");
+  if(!sEl||!eEl)return;
+  var iso=function(x){return !!x&&/^\d{4}-\d{2}-\d{2}$/.test(x);};
+  var days=dEl?Math.max(1,Math.round(Number(dEl.value)||0)):0;
+  if(days<=0)return;
+  function fwd(st,n){var d=new Date(st+"T00:00:00"),c=0,last=st,g=0;while(c<n&&g<800){var w=d.getDay();if(w!==0&&w!==6){c++;last=isoD(d);}if(c>=n)break;d.setDate(d.getDate()+1);g++;}return last;}
+  function bwd(en,n){var d=new Date(en+"T00:00:00"),c=0,last=en,g=0;while(c<n&&g<800){var w=d.getDay();if(w!==0&&w!==6){c++;last=isoD(d);}if(c>=n)break;d.setDate(d.getDate()-1);g++;}return last;}
+  function setF(el,fid,val){el.value=val;var n=document.querySelector('.dnat[data-for="'+fid+'"]');if(n)n.value=val;}
+  if((src==="start"||src==="days")&&iso(sEl.value)){ setF(eEl,"as-end",fwd(sEl.value,days)); }
+  else if(src==="end"&&iso(eEl.value)){ setF(sEl,"as-start",bwd(eEl.value,days)); }
+  else if(src==="days"&&iso(eEl.value)){ setF(sEl,"as-start",bwd(eEl.value,days)); }
+}
 document.addEventListener("input",function(e){var id=e.target.id||"";
+  if(id==="as-days"){assignAutofill("days");return;}
+  if(id==="as-start"){assignAutofill("start");return;}
+  if(id==="as-end"){assignAutofill("end");return;}
   if(id==="proj-q"){state.q=e.target.value;state._qfocus=true;render();return;}
   if(id==="mp-nr"){var mh=document.getElementById("mp-name");if(mh){var ln=legacyName(e.target.value);if(ln){mh.innerHTML='<span style="color:var(--green)">'+IC.check+'</span> <b>'+esc(ln)+'</b> <span class="muted" style="font-size:11px">— rastas sąraše</span>';mh.style.display="flex";}else{mh.style.display="none";mh.innerHTML="";}}return;}
   if(id==="sg-rate"||id==="sg-days"||id==="se-rate"||id==="se-days"){
@@ -1715,6 +1732,9 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
   // native datos pickeris -> ISO teksto laukas
   if(e.target.classList&&e.target.classList.contains("dnat")){var fid=e.target.getAttribute("data-for");var t=document.getElementById(fid);if(t)t.value=v;id=fid;}
   var isISO=(v===""||/^\d{4}-\d{2}-\d{2}$/.test(v));
+  if(id==="as-start"){assignAutofill("start");return;}
+  else if(id==="as-end"){assignAutofill("end");return;}
+  else if(id==="as-days"){assignAutofill("days");return;}
   if(id==="status-filter"){state.fStatus=v;render();}
   else if(id==="f-pel"){state.pelId=v;render();}
   else if(id==="f-from"){if(isISO){state.fFrom=v;render();}}
