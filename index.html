@@ -3,7 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Projektų centras · Projektų seka</title>
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
+<title>Projektų centras</title>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.10.0/lib/msal-browser.min.js"></script>
 <style>
 :root{
@@ -1402,7 +1404,7 @@ function notify(msg){state.toast=msg;if(_toastT)clearTimeout(_toastT);_toastT=se
 function render(){
   var app=document.getElementById("app");
   if(state.phase==="login"){
-    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark">'+IC.gauge+'</div><h1>PROJEKTŲ CENTRAS</h1><p>Projektų ir laiko sekimo sistema. Prisijunk savo įmonės Microsoft paskyra.</p><button class="msbtn" data-act="signin">'+IC.ms+' Prisijungti su Microsoft</button>'+(state.err?'<div class="gate-note" style="color:#9c2c1f">'+esc(state.err)+'</div>':'')+'<div class="gate-note">UAB „Projektų centras" · saugus prisijungimas per „Microsoft Entra ID"</div></div></div>';
+    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark">'+IC.gauge+'</div><h1>PROJEKTŲ CENTRAS</h1><button class="msbtn" data-act="signin" style="margin-top:18px">'+IC.ms+' Prisijungti su Microsoft</button>'+(state.err?'<div class="gate-note" style="color:#9c2c1f">'+esc(state.err)+'</div>':'')+'</div></div>';
     return;
   }
   if(state.phase==="boot"||state.phase==="loading"){
