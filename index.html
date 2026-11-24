@@ -326,6 +326,8 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .hc.l0{color:var(--steel-300);}.hc.l1{background:rgba(30,94,140,.10);color:var(--blue-deep);font-weight:600;}
 .hc.l2{background:rgba(30,94,140,.26);color:var(--blue-deep);font-weight:700;}.hc.l3{background:rgba(192,58,43,.22);color:#9c2c1f;font-weight:700;}
 .hc.tot{font-weight:700;background:#F5F7F8;flex-direction:column;gap:1px;}.hc.tot .u{font-size:9px;font-weight:600;}
+.hc.we{background:repeating-linear-gradient(135deg,#EEF1F4 0 4px,#E4E8EC 4px 8px);color:var(--steel-500);cursor:not-allowed;}
+.hc.head.we{background:#E4E8EC;}.hc.head.we .dn{color:var(--steel-500);}
 .hc.edit{cursor:pointer;}.hc.edit:hover{outline:2px solid var(--blue);outline-offset:-2px;}
 .hc.dl-soon{background:#F7D99A;color:#7a5410;}
 .hc.dl-day{background:#E7897B;color:#5c1b12;font-weight:800;}
@@ -511,6 +513,8 @@ var WD=["Sk","Pr","An","Tr","Kt","Pn","Št"];
 var LTM=["sausio","vasario","kovo","balandžio","gegužės","birželio","liepos","rugpjūčio","rugsėjo","spalio","lapkričio","gruodžio"];
 function recentWorkdays(n){var out=[],d=new Date(today);while(out.length<n){var w=d.getDay();if(w!==0&&w!==6)out.push(isoD(d));d=addDays(d,-1);}return out;}
 var WB=recentWorkdays(60), DAYS=WB.slice(0,10).reverse();
+function monthAllDays(off){off=off||0;var base=new Date(today.getFullYear(),today.getMonth()+off,1);var m=base.getMonth();var out=[];var d=new Date(base.getFullYear(),m,1);while(d.getMonth()===m){out.push(isoD(d));d=addDays(d,1);}return out;}
+function isWeekend(ds){var w=new Date(ds+"T00:00:00").getDay();return w===0||w===6;}
 function monthWorkdays(off){off=off||0;var base=new Date(today.getFullYear(),today.getMonth()+off,1);var m=base.getMonth();var out=[];var d=new Date(base.getFullYear(),m,1);while(d.getMonth()===m){var w=d.getDay();if(w!==0&&w!==6)out.push(isoD(d));d=addDays(d,1);}return out;}
 function monthLabelOf(off){off=off||0;var b=new Date(today.getFullYear(),today.getMonth()+(off||0),1);return b.toLocaleDateString("lt-LT",{year:"numeric",month:"long"});}
 function nfD(h){var d=(h||0)/CAP;var r=Math.round(d*10)/10;return (r%1===0?String(r):r.toFixed(1)).replace(".",",");}
@@ -901,9 +905,9 @@ function viewDetail(){
 }
 function viewMine(){
   var items=myStages();
-  var MD=monthWorkdays(state.tsOff);
+  var MD=monthAllDays(state.tsOff); // rodomos visos dienos; savaitgaliai pilki ir nepildomi
   var head='<div class="hc head sticky">Dalis</div>';
-  MD.forEach(function(d){var dt=new Date(d),td=d===isoD(today);head+='<div class="hc head'+(td?" today":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});
+  MD.forEach(function(d){var dt=new Date(d),td=d===isoD(today);head+='<div class="hc head'+(td?" today":"")+(isWeekend(d)?" we":"")+'"><span class="wd">'+WD[dt.getDay()]+'</span><span class="dn">'+dt.getDate()+'</span></div>';});
   head+='<div class="hc head tot">Viso</div>';
   var tsReal=items.concat(standingItems());
   var covered={};tsReal.forEach(function(it){covered[it.p.id+"||"+it.s.code]=1;});
@@ -922,7 +926,7 @@ function viewMine(){
       var hasTerm=!!(myPr&&(myPr.start||myPr.end));
       // SV priskirtas terminas (pabaiga) PERRAŠO dalies terminą spalvinimui ir rodymui
       var pdl=(it.p.standing||it.p.extra)?null:((myPr&&myPr.end)||it.s.deadline||it.p.deadline);
-      var tot=0;var cells=MD.map(function(d){var ab=myAbsence(d);var dcls=dlCellCls(pdl,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);var ov=myDayOT(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(ov>0?" otc":"")+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(v>0?' title="'+otTip(v,ov)+(dcls==="dl-day"?' · terminas '+fmtLT(pdl):'')+'"':dcls==="dl-day"?' title="Terminas — '+fmtLT(pdl)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
+      var tot=0;var cells=MD.map(function(d){if(isWeekend(d)){var wv=myDayHours(it.p.id,it.s.code,d);tot+=wv;return '<div class="hc we" title="Savaitgalis — nepildoma">'+(wv?nf(wv):"")+'</div>';}var ab=myAbsence(d);var dcls=dlCellCls(pdl,d);if(ab)return '<div class="hc edit abs abs-'+ab+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'" title="'+esc(ABS_LT[ab])+'">'+ab+'</div>';var v=myDayHours(it.p.id,it.s.code,d);var ov=myDayOT(it.p.id,it.s.code,d);tot+=v;return '<div class="hc edit '+loadClass(v)+(ov>0?" otc":"")+(dcls?' '+dcls:'')+'" data-act="cell" data-pid="'+esc(it.p.id)+'" data-code="'+esc(it.s.code)+'" data-date="'+d+'"'+(v>0?' title="'+otTip(v,ov)+(dcls==="dl-day"?' · terminas '+fmtLT(pdl):'')+'"':dcls==="dl-day"?' title="Terminas — '+fmtLT(pdl)+'"':'')+'>'+(v?nf(v):"")+'</div>';}).join("");
       if(it.p.standing||it.p.extra){ return '<div class="hc sticky" style="padding-left:22px"><span class="hmname">'+esc(it.s.name)+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>'; }
       var lkS=(it.myHours||0)-myStageSpent(it.p.id,it.s.code);
       var rowLk=' <span class="ghliko'+(lkS<0?" neg":"")+'" style="margin-left:6px;font-size:9.5px">liko '+nfD(lkS)+' d.</span>';
@@ -932,7 +936,7 @@ function viewMine(){
     }).join("");
     return hdr+body;
   }).join("");
-  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:400px repeat('+MD.length+', 46px) 60px">'+head+rows+'</div></div>';
+  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:400px '+MD.map(function(d){return isWeekend(d)?"30px":"46px";}).join(" ")+' 60px">'+head+rows+'</div></div>';
   var monthNav='<div class="monthnav"><button class="btn sm" data-act="tsprev">‹</button><span class="mlabel">'+esc(monthLabelOf(state.tsOff))+'</span><button class="btn sm" data-act="tsnext">›</button>'+(state.tsOff!==0?'<button class="btn sm" data-act="tsnow">Šis mėnuo</button>':'')+'</div>';
   var myTasks=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){(p.tasks||[]).forEach(function(tk){if(tk.assignee&&tk.assignee===state.meEmail)myTasks.push({p:p,tk:tk});});});
   myTasks.sort(function(a,b){return (a.tk.done?1:0)-(b.tk.done?1:0)||new Date(a.tk.due||"2100")-new Date(b.tk.due||"2100");});
@@ -1724,7 +1728,7 @@ document.addEventListener("click",function(e){
   else if(a==="addteam"){state.modal={type:"teamedit",sp:""};render();}
   else if(a==="editteam"){state.modal={type:"teamedit",sp:el.getAttribute("data-sp")};render();}
   else if(a==="saveteam"){saveTeam(el.getAttribute("data-sp"));}
-  else if(a==="cell"){state.modal={type:"cell",pid:el.getAttribute("data-pid"),code:el.getAttribute("data-code"),date:el.getAttribute("data-date")};render();}
+  else if(a==="cell"){if(isWeekend(el.getAttribute("data-date")||""))return;state.modal={type:"cell",pid:el.getAttribute("data-pid"),code:el.getAttribute("data-code"),date:el.getAttribute("data-date")};render();}
   else if(a==="savecell"){saveCell();}
   else if(a==="clearcell"){clearCell();}
   else if(a==="setabs"){setAbsence(el.getAttribute("data-date"),el.getAttribute("data-t"));}
