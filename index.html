@@ -1027,10 +1027,10 @@ function viewSvWork(){
     }).join("");
     return hdr+rows;
   }).join("")+'</div></div>'):'<div class="empty">Jūsų skyriui šiuo metu nėra priskirtų projektų dalių.</div>';
-  // pavaldiniai, sugrupuoti pagal skyrių
+  // darbuotojai, sugrupuoti pagal skyrių
   var subs=deptSubordinates(codes);
   var deptGroups=codes.map(function(c){return {code:c,name:skyriusName(c),subs:subs.filter(function(s){return (s.depts||[]).indexOf(c)>=0;})};}).filter(function(g){return g.subs.length;});
-  // --- užimtumo eilutė vienam pavaldiniui ---
+  // --- užimtumo eilutė vienam darbuotojui ---
   function subLoadRow(sub,code){
     // bendras krūvis: visi AKTYVŪS (neuždaryti) projektai, visi skyriai (ne tik šios grupės)
     var planH=0,projSet={};
@@ -1193,14 +1193,14 @@ function viewSvWork(){
       +'</div>';
   }
   var svv=state.svView||"assign";
-  var segs=[["assign","Projekto paskyrimas"],["schedule","Pavaldinių grafikas"],["load","Pavaldinių užimtumas"]];
+  var segs=[["assign","Projekto paskyrimas"],["schedule","Darbuotojų grafikas"],["load","Darbuotojų užimtumas"]];
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
   var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span>'+svSortBtn+'</div>'+partsTable+'</div>';
-  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Pavaldinių užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
+  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Darbuotojų užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
   var zoomCtl='<div class="gzoom"><span class="eyebrow" style="letter-spacing:0;text-transform:none">Mastelis</span><button class="btn sm" data-act="gzoom" data-d="-1" title="Mažinti — daugiau mėnesių">–</button><button class="btn sm" data-act="gzoom" data-d="1" title="Didinti — daugiau detalių">+</button></div>';
   var scheduleSection='<div class="section gsec">'+ganttHtml+'<div class="legend">'+(state.ganttByPerson?'<span>Žmogaus eilutė — bendra apkrova: <b style="color:#2E8B57">žalia</b> 1 darbas, <b style="color:#E6961E">geltona</b> 2, <b style="color:#C83232">raudona</b> 3+ darbai tą pačią dieną.</span> ':'')+'<span>Spalva — terminas (žalia / geltona ≤7 d. / raudona pradelsta) · fonas — projekto trukmė (▶ pradžia, ▼ terminas) · užpildyta — suplanuotos dienos · mėlyna linija — šiandien.</span></div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
-  var gModeSeg='<div class="statseg gmode">'+[["dept","Pagal skyrius"],["person","Pagal pavaldinį"]].map(function(m){var on=(m[0]==="person")===!!state.ganttByPerson;return '<button class="segbtn'+(on?" on":"")+'" data-act="gmode" data-v="'+m[0]+'">'+m[1]+'</button>';}).join("")+'</div>';
+  var gModeSeg='<div class="statseg gmode">'+[["dept","Pagal skyrius"],["person","Pagal darbuotoją"]].map(function(m){var on=(m[0]==="person")===!!state.ganttByPerson;return '<button class="segbtn'+(on?" on":"")+'" data-act="gmode" data-v="'+m[0]+'">'+m[1]+'</button>';}).join("")+'</div>';
   var headExtra=(svv==="schedule")?(gModeSeg+zoomCtl):"";
   return '<div class="pane"><div class="pane-head svhead"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()]||"Skyriaus viršininkas")+'</span><h1>Skyriaus darbai</h1></div><div class="svhead-r">'+seg+headExtra+'</div></div>'+svBody+'</div>';
 }
