@@ -352,6 +352,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .svhead{align-items:center;margin-bottom:12px;}
 .svhead-r{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
 .svhead .statseg{margin-bottom:0;}
+.svhead-r .sel.gpsel{width:auto;min-width:150px;max-width:190px;height:34px;padding:4px 28px 4px 10px;font-size:12.5px;font-weight:600;}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px;}
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
 .statcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
@@ -1160,9 +1161,10 @@ function viewSvWork(){
     var namesHtml="",timeHtml="",gKeys=[];
     if(state.ganttByPerson){
       // RŪŠIAVIMAS PAGAL PAVALDINĮ: vienas žmogus = viena grupė su VISAIS jo darbais (visi skyriai, projektai, dalys)
-      subs.slice().sort(function(a,b){return (a.name||"").localeCompare(b.name||"","lt",{sensitivity:"base"});}).forEach(function(sub){
+      var gFocus=(state.ganttPerson&&subs.some(function(x){return x.email===state.ganttPerson;}))?state.ganttPerson:"";
+      subs.slice().sort(function(a,b){return (a.name||"").localeCompare(b.name||"","lt",{sensitivity:"base"});}).filter(function(x){return !gFocus||x.email===gFocus;}).forEach(function(sub){
         var its=gBySub[sub.email]||[];curAbs=absBand(sub.email);
-        var key="p|"+sub.email;gKeys.push(key);var open=!!state.svOpen[key];
+        var key="p|"+sub.email;gKeys.push(key);if(gFocus&&state.svOpen[key]===undefined)state.svOpen[key]=true;var open=!!state.svOpen[key];
         var meTagG=(sub.email===state.meEmail)?' <span class="metag">(aš)</span>':'';
         // bendra apkrova per dieną: kiek darbų suplanuota tą pačią dieną
         var load={};its.forEach(function(it){itemPlanDays(it).forEach(function(d){(load[d]=load[d]||[]).push("Nr. "+it.pr.id+" · "+it.s.name);});});
@@ -1235,7 +1237,9 @@ function viewSvWork(){
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   var gModeSeg='<div class="statseg gmode">'+[["dept","Pagal skyrius"],["person","Pagal darbuotoją"]].map(function(m){var on=(m[0]==="person")===!!state.ganttByPerson;return '<button class="segbtn'+(on?" on":"")+'" data-act="gmode" data-v="'+m[0]+'">'+m[1]+'</button>';}).join("")+'</div>';
   var vacHead='<button class="btn sm" data-act="vacopen" title="Įvesti kolegos atostogas">'+IC.plus+' Atostogos</button>';
-  var headExtra=(svv==="schedule")?(vacHead+gModeSeg+zoomCtl):"";
+  var gSel=state.ganttPerson||"";
+  var gPersonSel=state.ganttByPerson?('<select class="sel gpsel" id="g-person" title="Rodyti tik vieną darbuotoją"><option value="">Visi darbuotojai</option>'+subs.slice().sort(function(a,b){return (a.name||"").localeCompare(b.name||"","lt",{sensitivity:"base"});}).map(function(p){return '<option value="'+esc(p.email)+'"'+(p.email===gSel?" selected":"")+'>'+esc(p.name)+'</option>';}).join("")+'</select>'):"";
+  var headExtra=(svv==="schedule")?(vacHead+gModeSeg+gPersonSel+zoomCtl):"";
   return '<div class="pane"><div class="pane-head svhead"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()]||"Skyriaus viršininkas")+'</span><h1>Skyriaus darbai</h1></div><div class="svhead-r">'+seg+headExtra+'</div></div>'+svBody+'</div>';
 }
 function viewStats(){
@@ -1857,6 +1861,7 @@ document.addEventListener("change",function(e){var id=e.target.id,v=e.target.val
   if(id==="as-start"){assignAutofill("start");return;}
   else if(id==="as-end"){assignAutofill("end");return;}
   else if(id==="as-days"){assignAutofill("days");return;}
+  if(id==="g-person"){state.ganttPerson=v||"";if(v)state.svOpen["p|"+v]=true;state._ganttJump=true;render();return;}
   if(id==="vac-person"&&state.modal&&state.modal.type==="vac"){state.modal.email=(v||"").toLowerCase();render();return;}
   if(id==="vac-from"){var vt=document.getElementById("vac-to");if(vt&&!vt.value&&/^\d{4}-\d{2}-\d{2}$/.test(v)){vt.value=v;var vn=document.querySelector('.dnat[data-for="vac-to"]');if(vn)vn.value=v;}}
   if(id==="status-filter"){state.fStatus=v;render();}
