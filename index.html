@@ -870,7 +870,7 @@ function viewList(){
     return '<div class="pgh tone-'+g.tone+'" data-act="togglegroup" data-g="'+esc(g.key)+'"><span class="pgh-car">'+(col?"▸":"▾")+'</span><span class="pgh-lab">'+esc(g.label)+'</span><span class="cnt">'+g.items.length+'</span></div>'+
       (col?'':g.items.map(rowHtml).join(""));
   }).join("");
-  var table=list.length?'<div class="ptblwrap"><div class="ptbl">'+colHead+body+'</div></div>':'<div class="empty">Projektų nėra. Pridėk įrašų į „Projektai" sąrašą arba spausk „Naujas projektas".</div>';
+  var table=list.length?'<div class="ptblwrap"><div class="ptbl">'+colHead+body+'</div></div>':'<div class="empty">Projektų nėra.</div>';
   var newBtn=(myRole()==="PV"||myRole()==="ADMIN")?'<button class="btn primary" data-act="newproject">'+IC.plus+' Naujas projektas</button>':'';
   var stO=[["open","Vykdomi (visi)"],["active","Vykdomi"],["soon","Baigiasi"],["overdue","Pradelsti"],["none","Be termino"],["closed","Uždaryti"+(closedN?" ("+closedN+")":"")],["all","Visos būsenos"]];
   var statusFilter='<select class="sel" id="status-filter" style="width:auto">'+stO.map(function(o){return '<option value="'+o[0]+'"'+((state.fStatus||"open")===o[0]?" selected":"")+'>'+o[1]+'</option>';}).join("")+'</select>';
@@ -980,8 +980,8 @@ function viewMine(){
   var sumTable=items.length?'<div class="section"><div class="sec-bar"><span class="eyebrow">Mano projektai — atlikimas</span></div><div class="mysum-wrap"><table class="mysum-tbl">'+r1+r2+r3+r4+r5+'</table></div></div>':'';
   return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()])+'</span><h1>Mano projektai</h1></div></div>'+
     sumTable+
-    '<div class="sec-bar" style="margin-top:20px"><span class="eyebrow">Mano valandos — spausk langelį įvesti ar pasitaisyti</span><span style="display:flex;gap:8px;align-items:center;margin-left:auto"><button class="btn sm" data-act="addmyproj">'+IC.plus+' Įvesti projekto Nr.</button>'+monthNav+'</span></div>'+grid+
-    '<div class="legend"><span>Šiandienos stulpelis pažymėtas mėlynai.</span><span><i style="background:rgba(192,58,43,.22)"></i>&gt;'+CAP+' val./d.</span><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span><span><b class="abs-chip abs-A">A</b> atostogos</span><span><b class="abs-chip abs-L">L</b> liga</span><span><b class="abs-chip abs-K">K</b> komandiruotė</span></div>'+myTasksSection+'</div>';
+    '<div class="sec-bar" style="margin-top:20px"><span class="eyebrow">Mano valandos</span><span style="display:flex;gap:8px;align-items:center;margin-left:auto"><button class="btn sm" data-act="addmyproj">'+IC.plus+' Įvesti projekto Nr.</button>'+monthNav+'</span></div>'+grid+
+    '<div class="legend"><span><i style="background:rgba(192,58,43,.22)"></i>&gt;'+CAP+' val./d.</span><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span><span><b class="abs-chip abs-A">A</b> atostogos</span><span><b class="abs-chip abs-L">L</b> liga</span><span><b class="abs-chip abs-K">K</b> komandiruotė</span></div>'+myTasksSection+'</div>';
 }
 function viewPelningumas(){
   if(!PROJECTS.length)return '<div class="pane"><h1>Pelningumas</h1><div class="empty">Projektų nėra.</div></div>';
@@ -1007,9 +1007,9 @@ function viewPelningumas(){
     '<div class="pcard"><div class="pl">Subrangai</div><div class="pv">'+eur(pr.sub)+'</div></div>'+
     '<div class="pcard"><div class="pl">Darbuotojų sąnaudos</div><div class="pv">'+eur(pr.emp)+'</div><div class="psub">išdirbtos d. × įkainis</div></div>'+
     '<div class="pcard '+(pr.profit>=0?"profit":"loss")+'"><div class="pl">Pelnas / nuostolis</div><div class="pv">'+eur(pr.profit)+'</div><div class="psub">pajamos − subrangai − darbuotojai</div></div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Pajamos — sutartys</span><button class="btn sm" data-act="addrev">'+IC.plus+' Sutartis / papildymas</button></div>'+(pr.fromSold?'<div class="muted" style="font-size:12px;margin-bottom:8px">Kol sutarčių neįvesta, pajamos imamos iš parduotų dalių ir paslaugų ('+eur(soldTotal(p))+'). Įvedus sutartį(-is), pajamos skaičiuojamos pagal jas.</div>':'')+'<div class="gtbl"><div class="gr th rev"><span>Sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(revRows||'<div class="empty">Nėra — pajamos iš parduotų eilučių.</div>')+'</div></div>'+
+    '<div class="section"><div class="sec-bar"><span class="eyebrow">Pajamos — sutartys</span><button class="btn sm" data-act="addrev">'+IC.plus+' Sutartis / papildymas</button></div>'+(pr.fromSold?'':'')+'<div class="gtbl"><div class="gr th rev"><span>Sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(revRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Išlaidos — subrangai</span><button class="btn sm" data-act="addsub">'+IC.plus+' Subranga</button></div><div class="gtbl"><div class="gr th rev"><span>Tiekėjas / sutartis</span><span>Data</span><span class="r">Suma be PVM</span><span></span></div>'+(subRows||'<div class="empty">Nėra.</div>')+'</div></div>'+
-    '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div>'+(pr.scale!==1?'<div class="muted" style="font-size:12px;margin-bottom:8px">„Parduota" rodoma perskaičiavus pagal sutarčių sumą. Užvedus pelę — komercinė suma ir įkainis.</div>':'')+'<div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Subrangai</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
+    '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyrių / dalių būklė</span></div>'+(pr.scale!==1?'':'')+'<div class="gtbl"><div class="gr th disc"><span>Projekto dalis</span><span class="r">Parduota</span><span class="r">Subrangai</span><span class="r">Pradirbta</span><span class="r">Likęs biudžetas</span></div>'+(discRows||'<div class="empty">Dalių nėra.</div>')+'</div></div></div>';
 }
 function filteredRegs(){return state.regs.filter(function(r){var okd=(!state.fFrom||r.date>=state.fFrom)&&(!state.fTo||r.date<=state.fTo);return okd&&(state.fUser==="all"||r.who===state.fUser)&&(state.fProj==="all"||r.pid===state.fProj);});}
 function allMonths(){var s={};state.regs.forEach(function(r){if(r.date)s[r.date.slice(0,7)]=1;});return Object.keys(s).sort();}
@@ -1028,7 +1028,7 @@ function assignPeopleOptions(code,sel){
 }
 function viewSvWork(){
   var codes=myDeptCodes();
-  if(!codes.length) return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()]||"Skyriaus viršininkas")+'</span><h1>Skyriaus darbai</h1></div></div><div class="empty">Jūs nesate priskirtas skyriaus vadovu. „Skyriai" sąraše nurodykite savo el. paštą kaip skyriaus vadovą (VadovoElPastas).</div></div>';
+  if(!codes.length) return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()]||"Skyriaus viršininkas")+'</span><h1>Skyriaus darbai</h1></div></div><div class="empty">Jūs nesate priskirtas skyriaus vadovu.</div></div>';
   var deptNames=codes.map(function(c){return skyriusName(c);}).join(", ");
   // 1) projektų dalys mano skyriuje(-iuose)
   var parts=[];
@@ -1089,7 +1089,7 @@ function viewSvWork(){
       var tot=0,cells=MM.map(function(d){var v=cH[k+"|"+d]||0,o=cO[k+"|"+d]||0;tot+=v;return '<div class="hc '+loadClass(v)+(o>0?" otc":"")+'"'+(v>0?' title="'+otTip(v,o)+'"':"")+'>'+(v?nf(v):"")+'</div>';}).join("");
       return '<div class="hc sticky"><span class="hmname">'+nm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';}).join("");
     var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:230px repeat('+MM.length+', 46px) 60px">'+gh+grows+'</div></div>';
-    return '<div class="svdetail"><div class="sec-bar sub"><span class="eyebrow">'+esc(sub.name)+' — valandos per mėnesį</span>'+nav+'</div>'+grid+'<div class="legend"><span>Rodomos tik dalys, prie kurių tą mėnesį dirbta.</span><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span></div></div>';
+    return '<div class="svdetail"><div class="sec-bar sub"><span class="eyebrow">'+esc(sub.name)+' — valandos per mėnesį</span>'+nav+'</div>'+grid+'<div class="legend"><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span></div></div>';
   }
   function deptHdr(g){return '<div class="grouphdr"><span class="gh-nr" style="background:var(--steel-500)">'+esc(g.code)+'</span> '+esc(g.name)+' <span class="muted" style="font-weight:600;text-transform:none;letter-spacing:0">· '+g.subs.length+'</span></div>';}
   var loadBody=deptGroups.length?deptGroups.map(function(g){return deptHdr(g)+g.subs.map(function(sub){return subLoadRow(sub,g.code);}).join("");}).join(""):'';
@@ -1098,7 +1098,7 @@ function viewSvWork(){
   PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(pr){(pr.stages||[]).forEach(function(s){
     if(codes.indexOf(s.code)<0)return;var dl=s.deadline||pr.deadline;(s.pris||[]).forEach(function(p){if(gBySub[p.email]!=null){gBySub[p.email].push({pr:pr,s:s,start:p.start,end:p.end,hours:p.hours});if(p.start||p.end||dl){gAny++;if(p.start)ds.push(p.start);if(p.end)ds.push(p.end);if(dl)ds.push(dl);if(pr.start)ds.push(pr.start);}}});});});
   var ganttHtml;
-  if(!gAny){ganttHtml='<div class="empty">Dar nėra priskirtų terminų. Priskirk darbą nurodydamas termino pradžią/pabaigą — jie atsiras grafike.</div>';}
+  if(!gAny){ganttHtml='<div class="empty">Dar nėra priskirtų terminų.</div>';}
   else{
     ds.sort();var PXD=state.ganttPx||8,NAMEW=190,LTMN=["Sausis","Vasaris","Kovas","Balandis","Gegužė","Birželis","Liepa","Rugpjūtis","Rugsėjis","Spalis","Lapkritis","Gruodis"];
     var showDays=PXD>=16,gstep=showDays?PXD:7*PXD;
@@ -1228,10 +1228,10 @@ function viewSvWork(){
   var svv=state.svView||"assign";
   var segs=[["assign","Projekto paskyrimas"],["schedule","Darbuotojų grafikas"],["load","Darbuotojų užimtumas"]];
   var seg='<div class="statseg">'+segs.map(function(s){return '<button class="segbtn'+(svv===s[0]?" on":"")+'" data-act="svview" data-v="'+s[0]+'">'+esc(s[1])+'</button>';}).join("")+'</div>';
-  var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys — paskirstyk darbą</span>'+svSortBtn+'</div>'+partsTable+'</div>';
-  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Darbuotojų užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų (nurodykite „Skyrius" Darbuotojų kortelėse).</div>')+'</div></div>';
+  var assignSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Projektų dalys</span>'+svSortBtn+'</div>'+partsTable+'</div>';
+  var loadSection='<div class="section"><div class="sec-bar"><span class="eyebrow">Darbuotojų užimtumas — '+subs.length+'</span></div><div class="gtbl"><div class="gr th svsub"><span>Darbuotojas</span><span class="r">Projektų</span><span class="r">Suplanuota</span><span class="r">Pradirbta</span><span class="r">Šios sav. apkrova</span></div>'+(loadBody||'<div class="empty">Skyriuje nėra darbuotojų.</div>')+'</div></div>';
   var zoomCtl='<div class="gzoom"><span class="eyebrow" style="letter-spacing:0;text-transform:none">Mastelis</span><button class="btn sm" data-act="gzoom" data-d="-1" title="Mažinti — daugiau mėnesių">–</button><button class="btn sm" data-act="gzoom" data-d="1" title="Didinti — daugiau detalių">+</button></div>';
-  var scheduleSection='<div class="section gsec">'+ganttHtml+'<div class="legend">'+(state.ganttByPerson?'<span>Žmogaus eilutė — bendra apkrova: <b style="color:#2E8B57">žalia</b> 1 darbas, <b style="color:#E6961E">geltona</b> 2, <b style="color:#C83232">raudona</b> 3+ darbai tą pačią dieną.</span> ':'')+'<span><b style="color:#3E7CB1">Šviesiai mėlyna</b> — atostogos (A), suplanuoti darbai nepasislenka.</span> <span>Spalva — terminas (žalia / geltona ≤7 d. / raudona pradelsta) · fonas — projekto trukmė (▶ pradžia, ▼ terminas) · užpildyta — suplanuotos dienos · mėlyna linija — šiandien.</span></div></div>';
+  var scheduleSection='<div class="section gsec">'+ganttHtml+'<div class="legend"><span><i style="background:var(--green)"></i>suplanuota</span><span><i style="background:var(--amber)"></i>terminas ≤7 d.</span><span><i style="background:var(--red)"></i>pradelsta</span><span><i style="background:rgba(46,139,87,.12);border:1px solid rgba(46,139,87,.34)"></i>projekto trukmė</span><span><i style="background:rgba(110,175,235,.55)"></i>atostogos</span>'+(state.ganttByPerson?'<span><i style="background:rgba(230,150,30,.8)"></i>2 darbai</span><span><i style="background:rgba(200,50,50,.85)"></i>3+ darbai</span>':'')+'</div></div>';
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   var gModeSeg='<div class="statseg gmode">'+[["dept","Pagal skyrius"],["person","Pagal darbuotoją"]].map(function(m){var on=(m[0]==="person")===!!state.ganttByPerson;return '<button class="segbtn'+(on?" on":"")+'" data-act="gmode" data-v="'+m[0]+'">'+m[1]+'</button>';}).join("")+'</div>';
   var vacHead='<button class="btn sm" data-act="vacopen" title="Įvesti kolegos atostogas">'+IC.plus+' Atostogos</button>';
@@ -1281,7 +1281,7 @@ function viewStats(){
       var tot=0,cells=MM.map(function(d){var v=cH[k+"|"+d]||0,o=cO[k+"|"+d]||0;tot+=v;return '<div class="hc '+loadClass(v)+(o>0?" otc":"")+'"'+(v>0?' title="'+otTip(v,o)+'"':"")+'>'+(v?nf(v):"")+'</div>';}).join("");
       return '<div class="hc sticky"><span class="hmname">'+nm+'</span></div>'+cells+'<div class="hc tot"><span class="mono">'+nf(tot)+'</span></div>';}).join("");
     var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:230px repeat('+MM.length+', 46px) 60px">'+gh+grows+'</div></div>';
-    var gridBody=kOrd.length?(grid+'<div class="legend"><span>Rodomos tik dalys, prie kurių tą mėnesį dirbta.</span><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span></div>'):'<div class="emptybox">Šį mėnesį įrašų nėra.</div>';
+    var gridBody=kOrd.length?(grid+'<div class="legend"><span><i style="background:rgba(198,93,33,.45)"></i>viršvalandžiai</span></div>'):'<div class="emptybox">Šį mėnesį įrašų nėra.</div>';
     perProj='<div class="panel" style="margin-top:14px"><div class="sec-bar"><span class="eyebrow">'+esc(state.fUser)+' — valandos per mėnesį</span>'+statNav+'</div>'+gridBody+'</div>';
   }
   var body=sv==="load"?(kpis+heat+perProj):sv==="byuser"?(kpis+uc+perProj):sv==="ot"?(kpis+otc+perProj):deptSummaryTable();
@@ -1313,7 +1313,7 @@ function viewAdmin(){
     '<div class="hmwrap"><div class="gtbl" style="min-width:770px"><div class="gr th adm"><span>Vardas</span><span>El. paštas (UPN)</span><span>Rolė</span><span>Skyrius</span><span class="r">Įkainis</span><span>Skiltys</span><span></span></div>'+(empRows||'<div class="empty">Nėra.</div>')+'</div></div></div>'+
     '<div class="section"><div class="sec-bar"><span class="eyebrow">Skyriai — '+SKYRIAI.length+'</span><button class="btn sm" data-act="addteam">'+IC.plus+' Naujas skyrius</button></div>'+
     '<div class="hmwrap"><div class="gtbl" style="min-width:560px"><div class="gr th team2"><span>Kodas</span><span>Pavadinimas</span><span>Vadovas</span><span class="r">Įkainis</span><span></span></div>'+(teamRows||'<div class="empty">Nėra.</div>')+'</div></div></div>'+
-    '<div class="legend"><span>„Skiltys" nustato, kurias korteles vartotojas mato. Tuščia = pagal rolę.</span></div></div>';
+    '</div>';
 }
 function viewModal(){
   if(!state.modal)return "";
@@ -1322,15 +1322,15 @@ function viewModal(){
     var absBtns='<div class="field"><span class="eyebrow">Neatvykimas (visai dienai, visuose projektuose)</span><div class="absrow">'+
       ["A","L","K"].map(function(t){return '<button class="absbtn abs-'+t+(ab===t?" on":"")+'" data-act="setabs" data-t="'+t+'" data-date="'+esc(m.date)+'">'+t+' · '+esc(ABS_LT[t])+'</button>';}).join("")+
       (ab?'<button class="absbtn clear" data-act="clearabs" data-date="'+esc(m.date)+'">Darbo diena</button>':'')+'</div></div>';
-    var hoursPart=ab?'<p class="sub" style="margin-top:4px">Ši diena pažymėta: <b>'+esc(ABS_LT[ab])+' ('+ab+')</b>. Visuose projektuose laikoma užimta. Valandų įvesti negalima — pirma pažymėk „Darbo diena".</p>'
+    var hoursPart=ab?'<p class="sub" style="margin-top:4px">Ši diena pažymėta: <b>'+esc(ABS_LT[ab])+' ('+ab+')</b>.</p>'
       :'<label class="field"><span class="eyebrow">Įprastos valandos tą dieną (perrašo)</span><input class="inp" id="cell-h" type="number" min="0" step="0.5" value="'+(curNorm||"")+'" placeholder="0"></label>'+
         '<label class="otchk"><input type="checkbox" id="cell-ot"'+(curOT>0?" checked":"")+' onchange="var w=document.getElementById(\'cell-oth-wrap\');w.style.display=this.checked?\'block\':\'none\';if(this.checked){var i=document.getElementById(\'cell-oth\');i.focus();try{i.select();}catch(e){}}"><span>Pridėti viršvalandžius</span></label>'+
         '<div id="cell-oth-wrap" class="otwrap" style="display:'+(curOT>0?"block":"none")+'"><label class="field"><span class="eyebrow">Viršvalandžiai (val.)</span><input class="inp" id="cell-oth" type="number" min="0" step="0.5" value="'+(curOT||"")+'" placeholder="0"></label></div>'+
-        '<p class="sub" style="margin:2px 0 10px;font-size:11.5px">Bendra suma = įprastos + viršvalandžiai. Gali būti ir vien viršvalandžiai.</p>'+
+        ''+
         '<button class="btn primary wide" data-act="savecell">Išsaugoti</button>'+(cur?'<button class="btn danger wide" data-act="clearcell" style="margin-top:8px">Išvalyti dieną</button>':'');
     inner='<div class="form"><h3>Mano diena</h3><p class="sub">Nr. '+esc(m.pid)+' · '+esc(skyriusName(m.code))+' · '+fmtLT(m.date)+'</p>'+absBtns+hoursPart+'</div>';
   } else if(m.type==="projentry"){
-    inner='<div class="form"><h3>Įvesti projektą ranka</h3><p class="sub">Įrašyk projekto Nr., į kurį nori vesti valandas, net jei jis tau nepriskirtas (pereinamuoju laikotarpiu ar grįžus prie užbaigto projekto).</p>'+
+    inner='<div class="form"><h3>Įvesti projektą ranka</h3>'+
      '<label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="mp-nr" placeholder="pvz. 952P" autocomplete="off"></label>'+
      '<div id="mp-name" class="mphint" style="display:none"></div>'+
      '<label class="field"><span class="eyebrow">Dalis / pastaba (nebūtina)</span><input class="inp" id="mp-code" placeholder="pvz. SK arba „pataisymai"></label>'+
@@ -1342,7 +1342,7 @@ function viewModal(){
     var kindSeg='<div class="statseg" style="margin-bottom:9px"><button type="button" class="segbtn'+(!svc?" on":"")+'" data-act="stage-kind" data-k="dept">Skyrius</button><button type="button" class="segbtn'+(svc?" on":"")+'" data-act="stage-kind" data-k="svc">Paslauga</button></div>';
     var codeField=(svc?'<label class="field"><span class="eyebrow">Paslaugos pavadinimas</span><input class="inp" id="sg-name" placeholder="pvz. Viešinimas, PAV atranka, Topografija, SLD" value="'+esc(m.code||"")+'"></label>'
                      :'<label class="field"><span class="eyebrow">Skyrius / dalis</span><select class="sel" id="sg-code">'+sgCode+'</select></label>')+'<label class="chk" style="margin:-4px 0 12px"><input type="checkbox" id="sg-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>';
-    var note=svc?'':'<p class="sub" style="margin-top:2px">Darbuotojus priskirs skyriaus vadovas („Skyriaus darbai").</p>';
+    var note=svc?'':'';
     inner='<div class="form"><h3>Pridėti eilutę</h3><p class="sub">'+esc(selProject().name)+'</p>'+kindSeg+codeField+priceSectionHtml("sg",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+'<label class="field"><span class="eyebrow">Terminas</span>'+dField("sg-due",m.due,"inp")+'</label>'+note+'<button class="btn primary wide" data-act="savestage">Pridėti</button></div>';
   } else if(m.type==="empedit"){var isNew=!m.sp;var p=isNew?{name:"",email:"",role:"PROJ",dept:"",rate:230,tabs:[],inStats:true}:(PEOPLE.find(function(x){return String(x.spId)===String(m.sp);})||{});
     var curTabs=(p.tabs&&p.tabs.length)?p.tabs:defaultTabsForRole(p.role||"PROJ");
@@ -1375,7 +1375,7 @@ function viewModal(){
      nameFld+
      priceSectionHtml("se",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+
      '<label class="field"><span class="eyebrow">'+(m.svc?'Terminas':'Dalies terminas')+'</span>'+dField("se-due",m.due,"inp")+'</label>'+subChk+
-     (m.svc?'':'<p class="sub" style="margin-top:2px">Darbuotojus daliai priskiria skyriaus vadovas skiltyje „Skyriaus darbai".</p>')+
+     (m.svc?'':'')+
      '<button class="btn primary wide" data-act="savestageedit">Išsaugoti</button></div>';
   } else if(m.type==="vac"){
     var vEm=(m.email||"").toLowerCase(),vPe=vEm?personByEmail(vEm):null;
@@ -1387,7 +1387,7 @@ function viewModal(){
       '<div class="eyebrow" style="margin:14px 0 6px">Pridėti laikotarpį</div>'+
       '<label class="field"><span class="eyebrow">Tipas</span><select class="sel" id="vac-type"><option value="A">Atostogos</option><option value="K">Komandiruotė</option><option value="L">Liga / nedarbingumas</option></select></label>'+
       '<div class="two"><label class="field"><span class="eyebrow">Nuo</span>'+dField("vac-from","","inp")+'</label><label class="field"><span class="eyebrow">Iki</span>'+dField("vac-to","","inp")+'</label></div>'+
-      '<span class="muted" style="font-size:11.5px;display:block;margin:-4px 0 10px">Žymimos tik darbo dienos. Jau suplanuoti darbai grafike nepasislenka — atostogų dienos tiesiog pažymimos šviesiai mėlynai.</span>'+
+      ''+
       '<button class="btn primary wide" data-act="vacsave">Išsaugoti</button></div>';
   } else if(m.type==="assign"){var apr=projById(m.pid)||{};var ast=((apr.stages||[]).find(function(s){return s.code===m.code;}))||{};
     var aex=m.sp?((ast.pris||[]).find(function(p){return String(p.spId)===String(m.sp);})):null;
@@ -1401,7 +1401,7 @@ function viewModal(){
      '<label class="field"><span class="eyebrow">Darbuotojas</span><select class="sel" id="as-person"'+(lockEmail?" disabled":"")+'>'+popts+'</select></label>'+
      '<div class="field"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="eyebrow">Planuojamos dienos</span><button type="button" class="btn sm" data-act="assign-all" data-d="'+remD+'">Visos dienos ('+remTxt+' d.)</button></div><input class="inp" id="as-days" type="number" min="0" step="0.5" value="'+esc(aex?nfD(aex.hours).replace(",","."):"")+'" placeholder="0"><span class="muted" style="font-size:12px;margin-top:4px;display:block">Parduota: '+nfD(soldD*CAP)+' d. · nepriskirta: '+remTxt+' d.</span></div>'+
      '<div class="two"><label class="field"><span class="eyebrow">Termino pradžia</span>'+dField("as-start",(aex&&aex.start)||"","inp")+'</label><label class="field"><span class="eyebrow">Termino pabaiga</span>'+dField("as-end",(aex&&aex.end)||"","inp")+'</label></div>'+
-     '<span class="muted" style="font-size:11.5px;display:block;margin:-4px 0 10px">Būtina nurodyti bent vieną. Nurodžius <b>pradžią</b>, pabaiga apskaičiuojama automatiškai pagal dienų skaičių (grafike — pirmyn nuo pradžios). Nurodžius tik <b>pabaigą</b>, dienos skaičiuojamos atgal prieš ją.</span>'+
+     ''+
      '<button class="btn primary wide" data-act="saveassign">Išsaugoti</button></div>';
   } else if(m.type==="taskedit"){var tke=null;(selProject().tasks||[]).forEach(function(t){if(String(t.spId)===String(m.sp))tke=t;});tke=tke||{text:"",assigneeName:"",due:""};
     inner='<div class="form"><h3>Redaguoti užduotį</h3><p class="sub">'+esc(selProject().name)+'</p>'+
@@ -1410,7 +1410,7 @@ function viewModal(){
      '<label class="field"><span class="eyebrow">Terminas</span>'+dField("te-due",tke.due,"inp")+'</label>'+
      '<button class="btn primary wide" data-act="savetaskedit" data-sp="'+esc(m.sp||"")+'">Išsaugoti</button></div>';
   } else if(m.type==="projedit"){var pp=selProject()||{};
-    inner='<div class="form"><h3>Redaguoti projektą</h3><p class="sub">Keičiant Nr. atnaujinami ir visi susiję įrašai.</p>'+
+    inner='<div class="form"><h3>Redaguoti projektą</h3>'+
      '<div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="pe-id" value="'+esc(pp.id||"")+'"></label>'+
      '<label class="field"><span class="eyebrow">Pradžios data</span>'+dField("pe-start",pp.start,"inp")+'</label></div>'+
      '<div class="two"><label class="field"><span class="eyebrow">Terminas</span>'+dField("pe-due",pp.deadline,"inp")+'</label><label class="field"></label></div>'+
@@ -1424,8 +1424,8 @@ function viewModal(){
     var vTitle=(m.t!=null)?esc(m.t):"", vSum=(m.s!=null?m.s:""), vDate=m.d||"", vRecalc=(m.rc!==false);
     var partSel="";
     if(!isRev){var pp=projById(state.pelId)||{};var sopt=(pp.stages||[]).filter(function(s){return s.soldPrice!=null||s.soldDays>0;}).map(function(s){return '<option value="'+esc(s.code)+'">'+esc(s.name)+(s.soldDays?(" — parduota "+nfD(stagePlanned(s))+" d."):"")+(s.soldPrice!=null?(" ("+eur(s.soldPrice)+")"):"")+'</option>';}).join("");
-      partSel='<label class="field"><span class="eyebrow">Projekto dalis (nebūtina)</span><select class="inp" id="rv-code"><option value="">— nepriskirta —</option>'+sopt+'</select><span class="muted" style="font-size:12px;margin-top:4px;display:block">Priskyrus daliai su parduotomis dienomis, tos dalies parduotas biudžetas (dienos ir suma) sumažės subrangos suma.</span></label>';}
-    var recalcChk=isRev?'<label class="otchk"><input type="checkbox" id="rv-recalc"'+(vRecalc?" checked":"")+'> Perskaičiuoti dalių įkainius pagal šią sumą</label><span class="muted" style="font-size:11.5px;display:block;margin:2px 0 2px">Skirtumas nuo komercinės sumos proporcingai paskirstomas per visas dalis ir paslaugas — įkainiai perskaičiuojami, parduotų dienų skaičius nekeičiamas.</span>':'';
+      partSel='<label class="field"><span class="eyebrow">Projekto dalis (nebūtina)</span><select class="inp" id="rv-code"><option value="">— nepriskirta —</option>'+sopt+'</select></label>';}
+    var recalcChk=isRev?'<label class="otchk"><input type="checkbox" id="rv-recalc"'+(vRecalc?" checked":"")+'> Perskaičiuoti dalių įkainius pagal šią sumą</label>':'';
     inner='<div class="form"><h3>'+(isRev?(isEdit?"Redaguoti sutartį":"Sutartis / pajamos"):"Subranga / išlaidos")+'</h3><p class="sub">'+esc((projById(state.pelId)||{}).name||"")+'</p><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="rv-title" value="'+vTitle+'" placeholder="'+(isRev?"Sutarties Nr.":"Tiekėjas / sutartis")+'"></label>'+partSel+'<div class="two"><label class="field"><span class="eyebrow">Data</span>'+dField("rv-date",vDate,"inp")+'</label><label class="field"><span class="eyebrow">Suma be PVM, €</span><input class="inp" id="rv-sum" type="number" min="0" step="0.01" value="'+vSum+'" placeholder="0"></label></div>'+recalcChk+'<button class="btn primary wide" data-act="'+(isRev?"saverev":"savesub")+'">'+(isEdit?"Išsaugoti":"Pridėti")+'</button></div>';
   } else if(m.type==="newproject"){wide=" wide";var d=state.draft;
     var stages=d.stages.map(function(s,i){var svc=s.kind==="svc";
@@ -1438,7 +1438,7 @@ function viewModal(){
       '<div class="ed-grid"><div><label class="ed-lab">Parduotos dienos'+(svc?' (nebūt.)':'')+'</label><input class="inp" id="st-days-'+i+'" type="number" min="0" placeholder="0" value="'+esc(s.days)+'"></div>'+
       '<div><label class="ed-lab">Terminas</label>'+dField("st-due-"+i,s.due,"inp")+'</div></div>'+
       '<label class="ed-lab" style="margin-top:8px">Parduota suma, €'+(svc?'':' (nebūt. — kitaip dienos × įkainis)')+'</label><input class="inp" id="st-sum-'+i+'" type="number" min="0" step="0.01" placeholder="'+(svc?'0':'skaičiuojama iš dienų')+'" value="'+esc(s.sum!=null?s.sum:"")+'"></div>';}).join("");
-    inner='<div class="form"><h3>Naujas projektas</h3><p class="sub">Suvesk visas parduotas komercinio pasiūlymo eilutes — skyrių dalis (dienos × įkainis) ir paslaugas (viešinimas, PAV atranka, topo, SLD ir pan.).</p><div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Pradžios data</span>'+dField("np-start",d.start,"inp")+'</label></div><div class="two"><label class="field"><span class="eyebrow">Terminas</span>'+dField("np-deadline",d.deadline,"inp")+'</label><label class="field"></label></div><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'" placeholder="Projekto pavadinimas"></label><label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="np-pm">'+pmOptions(d.pm||state.meEmail)+'</select></label><div class="sec-bar" style="margin-top:6px"><span class="eyebrow">Parduotos eilutės</span><span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Skyrius</button> <button class="btn sm" data-act="draft-addsvc">'+IC.plus+' Paslauga</button></span></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti projektą</button></div>';
+    inner='<div class="form"><h3>Naujas projektas</h3><div class="two"><label class="field"><span class="eyebrow">Projekto Nr.</span><input class="inp" id="np-id" value="'+esc(d.id)+'" placeholder="pvz. 1042"></label><label class="field"><span class="eyebrow">Pradžios data</span>'+dField("np-start",d.start,"inp")+'</label></div><div class="two"><label class="field"><span class="eyebrow">Terminas</span>'+dField("np-deadline",d.deadline,"inp")+'</label><label class="field"></label></div><label class="field"><span class="eyebrow">Pavadinimas</span><input class="inp" id="np-name" value="'+esc(d.name)+'" placeholder="Projekto pavadinimas"></label><label class="field"><span class="eyebrow">Projekto vadovas (PV)</span><select class="sel" id="np-pm">'+pmOptions(d.pm||state.meEmail)+'</select></label><div class="sec-bar" style="margin-top:6px"><span class="eyebrow">Parduotos eilutės</span><span><button class="btn sm" data-act="draft-addstage">'+IC.plus+' Skyrius</button> <button class="btn sm" data-act="draft-addsvc">'+IC.plus+' Paslauga</button></span></div>'+stages+'<button class="btn primary wide" data-act="create">Sukurti projektą</button></div>';
   } else if(m.type==="finishproj"){
     inner='<div class="form"><h3>Baigti projekto darbus?</h3><p class="sub">Projektas <b>Nr. '+esc(m.pid)+'</b> bus pašalintas iš tavo „Mano valandų" lentelės.</p><div class="banner info" style="margin:2px 0 4px">'+IC.check+'<div>Jau įvestos valandos <b>išliks</b> — jos lieka apskaitoje ir statistikoje. Prireikus projektą visada gali vėl pridėti mygtuku „Įvesti projekto Nr.".</div></div><div class="btnrow"><button class="btn" data-x>Atšaukti</button><button class="btn primary" data-act="delmyproj-go" data-pid="'+esc(m.pid)+'">Baigti darbus</button></div></div>';
   }
