@@ -785,7 +785,7 @@ function loadClass(v){return v<=0?"l0":v<=4?"l1":v<=CAP?"l2":"l3";}
 /* =========================== VIEWS =========================== */
 function defaultTabsForRole(role){
   if(role==="ADMIN")return ["projektai","mine","svwork","pelningumas","stats","admin"];
-  if(role==="PV")return ["projektai","mine","pelningumas","stats"];
+  if(role==="PV")return ["projektai","mine","svwork","pelningumas","stats"];
   if(role==="SV")return ["projektai","mine","svwork","stats"];
   return ["mine"];
 }
@@ -989,7 +989,8 @@ function allMonths(){var s={};state.regs.forEach(function(r){if(r.date)s[r.date.
 function monthShort(k){return LTM[parseInt(k.slice(5,7),10)-1].slice(0,3)+" "+k.slice(2,4);}
 function monthLabel(k){return LTM[parseInt(k.slice(5,7),10)-1]+" "+k.slice(0,4);}
 function chartRow(label,valTxt,frac,cls){return '<div class="crow"><span class="cl">'+esc(label)+'</span><span class="ct"><span class="cf" style="width:'+(Math.max(0,Math.min(frac,1))*100)+'%;background:'+cls+'"></span></span><span class="cnum">'+valTxt+'</span></div>';}
-function myDeptCodes(){ if(myRole()==="ADMIN")return SKYRIAI.map(function(s){return s.code;}); var me=state.meEmail; return SKYRIAI.filter(function(s){return (s.head||"").toLowerCase()===me;}).map(function(s){return s.code;}); }
+/* ADMIN ir projekto vadovas (PV) mato ir gali priskirti visuose skyriuose — pvz. kai skyrius neturi vadovo ar vadovas nedirba */
+function myDeptCodes(){ var r=myRole(); if(r==="ADMIN"||r==="PV")return SKYRIAI.map(function(s){return s.code;}); var me=state.meEmail; return SKYRIAI.filter(function(s){return (s.head||"").toLowerCase()===me;}).map(function(s){return s.code;}); }
 function deptSubordinates(codes){ return PEOPLE.filter(function(p){return p.inProjects&&(p.depts||[]).some(function(c){return codes.indexOf(c)>=0;});}); }
 /* priskyrimui: tik tie darbuotojai, kurie priklauso dalies skyriui, sugrupuoti */
 function assignPeopleOptions(code,sel){
@@ -1000,7 +1001,7 @@ function assignPeopleOptions(code,sel){
 }
 function viewSvWork(){
   var codes=myDeptCodes();
-  if(!codes.length) return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div></div><div class="empty">Jūs nesate priskirtas skyriaus vadovu. „Skyriai" sąraše nurodykite savo el. paštą kaip skyriaus vadovą (VadovoElPastas).</div></div>';
+  if(!codes.length) return '<div class="pane"><div class="pane-head"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()]||"Skyriaus viršininkas")+'</span><h1>Skyriaus darbai</h1></div></div><div class="empty">Jūs nesate priskirtas skyriaus vadovu. „Skyriai" sąraše nurodykite savo el. paštą kaip skyriaus vadovą (VadovoElPastas).</div></div>';
   var deptNames=codes.map(function(c){return skyriusName(c);}).join(", ");
   // 1) projektų dalys mano skyriuje(-iuose)
   var parts=[];
@@ -1201,7 +1202,7 @@ function viewSvWork(){
   var svBody=svv==="assign"?assignSection:svv==="schedule"?scheduleSection:loadSection;
   var gModeSeg='<div class="statseg gmode">'+[["dept","Pagal skyrius"],["person","Pagal pavaldinį"]].map(function(m){var on=(m[0]==="person")===!!state.ganttByPerson;return '<button class="segbtn'+(on?" on":"")+'" data-act="gmode" data-v="'+m[0]+'">'+m[1]+'</button>';}).join("")+'</div>';
   var headExtra=(svv==="schedule")?(gModeSeg+zoomCtl):"";
-  return '<div class="pane"><div class="pane-head svhead"><div><span class="eyebrow">Skyriaus viršininkas</span><h1>Skyriaus darbai</h1></div><div class="svhead-r">'+seg+headExtra+'</div></div>'+svBody+'</div>';
+  return '<div class="pane"><div class="pane-head svhead"><div><span class="eyebrow">'+esc(ROLE_LT[myRole()]||"Skyriaus viršininkas")+'</span><h1>Skyriaus darbai</h1></div><div class="svhead-r">'+seg+headExtra+'</div></div>'+svBody+'</div>';
 }
 function viewStats(){
   var STAT=PEOPLE.filter(function(p){return p.inStats;});
