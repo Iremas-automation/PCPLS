@@ -328,6 +328,9 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .hc.tot{font-weight:700;background:#F5F7F8;flex-direction:column;gap:1px;}.hc.tot .u{font-size:9px;font-weight:600;}
 .hc.we{background:repeating-linear-gradient(135deg,#EEF1F4 0 4px,#E4E8EC 4px 8px);color:var(--steel-500);cursor:not-allowed;}
 .hc.head.we{background:#E4E8EC;}.hc.head.we .dn{color:var(--steel-500);}
+.hc.foot{font-weight:800;border-top:2px solid var(--steel-300);background:#F5F7F8;font-size:12px;color:var(--ink);}
+.hc.foot.we{background:repeating-linear-gradient(135deg,#EEF1F4 0 4px,#E4E8EC 4px 8px);}
+.hc.foot.l1{background:rgba(30,94,140,.10);}.hc.foot.l2{background:rgba(30,94,140,.26);}.hc.foot.l3{background:rgba(192,58,43,.22);color:#9c2c1f;}
 .hc.edit{cursor:pointer;}.hc.edit:hover{outline:2px solid var(--blue);outline-offset:-2px;}
 .hc.dl-soon{background:#F7D99A;color:#7a5410;}
 .hc.dl-day{background:#E7897B;color:#5c1b12;font-weight:800;}
@@ -936,7 +939,12 @@ function viewMine(){
     }).join("");
     return hdr+body;
   }).join("");
-  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:400px '+MD.map(function(d){return isWeekend(d)?"30px":"46px";}).join(" ")+' 60px">'+head+rows+'</div></div>';
+  // IŠ VISO: kiekvienos dienos visų mano eilučių valandų suma
+  var grandTot=0;
+  var footCells=MD.map(function(d){var sum=tsItems.reduce(function(a,it){return a+(myDayHours(it.p.id,it.s.code,d)||0);},0);grandTot+=sum;var we=isWeekend(d);
+    return '<div class="hc foot'+(we?" we":"")+(sum>0&&!we?" "+loadClass(sum):"")+'"'+(sum>0?' title="'+fmtLT(d)+' — iš viso '+nf(sum)+' val."':'')+'>'+(sum?nf(sum):"")+'</div>';}).join("");
+  var footRow='<div class="hc sticky foot" style="justify-content:flex-start;padding-left:12px">IŠ VISO</div>'+footCells+'<div class="hc tot foot"><span class="mono">'+nf(grandTot)+'</span></div>';
+  var grid='<div class="hmwrap"><div class="hmgrid" style="grid-template-columns:400px '+MD.map(function(d){return isWeekend(d)?"30px":"46px";}).join(" ")+' 60px">'+head+rows+footRow+'</div></div>';
   var monthNav='<div class="monthnav"><button class="btn sm" data-act="tsprev">‹</button><span class="mlabel">'+esc(monthLabelOf(state.tsOff))+'</span><button class="btn sm" data-act="tsnext">›</button>'+(state.tsOff!==0?'<button class="btn sm" data-act="tsnow">Šis mėnuo</button>':'')+'</div>';
   var myTasks=[];PROJECTS.filter(function(p){return p.status!=="closed";}).forEach(function(p){(p.tasks||[]).forEach(function(tk){if(tk.assignee&&tk.assignee===state.meEmail)myTasks.push({p:p,tk:tk});});});
   myTasks.sort(function(a,b){return (a.tk.done?1:0)-(b.tk.done?1:0)||new Date(a.tk.due||"2100")-new Date(b.tk.due||"2100");});
