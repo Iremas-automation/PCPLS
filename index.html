@@ -1459,11 +1459,11 @@ function render(){
     return;
   }
   if(state.phase==="fatal"){
-    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark" style="background:var(--red)">'+IC.warn+'</div><h1>Nepavyko įkelti</h1><p style="text-align:left">'+esc(state.err||"")+'</p><button class="msbtn" data-act="signout" style="background:var(--blue)">Bandyti iš naujo</button></div></div>';
+    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark" style="background:var(--red)">'+IC.warn+'</div><h1>Nepavyko įkelti</h1><p style="text-align:left">'+esc(state.err||"")+'</p><button class="msbtn" data-act="retry" style="background:var(--blue)">Bandyti iš naujo</button></div></div>';
     return;
   }
   if(state.phase==="noaccess"){
-    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark" style="background:var(--steel-500)">'+IC.gauge+'</div><h1>Prieiga nesuteikta</h1><p>Jūsų paskyra <code>'+esc(state.meEmail||"")+'</code> nėra registruota sistemoje. Kreipkitės į IT skyrių, kad Jus įtrauktų.</p><button class="msbtn" data-act="signout" style="background:var(--blue)">Atsijungti</button></div></div>';
+    app.innerHTML='<div class="gate"><div class="gate-card"><div class="gate-mark" style="background:var(--steel-500)">'+IC.gauge+'</div><h1>Prisijungti neleidžiama</h1></div></div>';
     return;
   }
   var role=myRole(),tabs=myTabs();
@@ -1744,6 +1744,7 @@ document.addEventListener("click",function(e){
   var a=el.getAttribute("data-act");
   if(a==="signin"){doLogin();}
   else if(a==="signout"){msalApp.logoutRedirect();}
+  else if(a==="retry"){location.reload();} /* bandyti iš naujo — NEatjungiant nuo Microsoft paskyros */
   else if(a==="open"){state.selId=el.getAttribute("data-id");state.view="detail";state.tab="projektai";render();}
   else if(a==="back"){state.view="list";state.tab="projektai";render();}
   else if(a==="closeproj"){setStatus("closed");}
