@@ -352,6 +352,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-fo
 .svhead{align-items:center;margin-bottom:12px;}
 .svhead-r{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;}
 .svhead .statseg{margin-bottom:0;}
+.subradios{display:flex;flex-direction:column;gap:4px;margin-top:4px;}.subradios .chk{margin:0;}
 .svhead-r .sel.gpsel{width:auto;min-width:150px;max-width:190px;height:34px;padding:4px 28px 4px 10px;font-size:12.5px;font-weight:600;}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-right:5px;vertical-align:-2px;}
 .statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px;}
@@ -578,6 +579,13 @@ function skyriusRate(code){var s=SKYRIAI.find(function(x){return x.code===code;}
 function isSvc(code){return !!code&&!SKYRIAI.some(function(x){return x.code===code;});}
 /* dalis IŠORINĖ (neplanuojama viduje, neskiriama projektuotojams): paslauga arba pažymėta „subranga" */
 function isExternal(s){return !!s&&(s.sub||isSvc(s.code));}
+/* skyriaus dalies vykdytojas: none = mūsų darbuotojai, mix = darbuotojai + subranga, full = tik subranga */
+function subModeOf(s){return s&&s.sub?"full":(s&&s.subMix?"mix":"none");}
+function subWrite(mode){return mode==="full"?"Taip":mode==="mix"?"Dalinai":"Ne";}
+function subModeHtml(name,mode){mode=mode||"none";var o=[["none","Mūsų darbuotojai"],["mix","Mūsų darbuotojai + subranga"],["full","Tik subranga"]];
+  return '<div class="field"><span class="eyebrow">Darbus atliks</span><div class="subradios">'+o.map(function(x){return '<label class="chk"><input type="radio" name="'+name+'" value="'+x[0]+'"'+(mode===x[0]?" checked":"")+'> '+x[1]+'</label>';}).join("")+'</div></div>';}
+function readSubMode(name,def){var r=document.querySelector('input[name="'+name+'"]:checked');return r?r.value:(def||"none");}
+function subTagHtml(s){return s.sub?' <span class="pill grey" style="font-size:9px;padding:1px 6px">SUBRANGA</span>':(s.subMix?' <span class="pill grey" style="font-size:9px;padding:1px 6px">+ SUBRANGA</span>':'');}
 function myRole(){return state.me?roleOf(state.me):"PROJ";}
 function canManage(){var r=myRole();return r==="PV"||r==="SV"||r==="ADMIN";}
 function canAdmin(){return myTabKeys().indexOf("admin")>=0;}
@@ -626,7 +634,7 @@ function assemble(raw){
       return { code:code, name:skyriusName(code), soldDays:Number(d.ParduotosDienos)||0,
                soldPrice:(d.ParduotaKaina!=null?Number(d.ParduotaKaina):null), rate:skyriusRate(code),
                deadline:dOnly(d.DaliesTerminas), resp:respName, assignees:emails, pris:pris, prisIds:pris.map(function(x){return x.spId;}),
-               sub:(String(d.Subranga||"").toLowerCase().indexOf("taip")>=0)||d.Subranga===true, spId:d.__id };
+               sub:(String(d.Subranga||"").toLowerCase().indexOf("taip")>=0)||d.Subranga===true, subMix:String(d.Subranga||"").toLowerCase().indexOf("dalin")>=0, spId:d.__id };
     });
     // projekto dalys visur rodomos abėcėlės tvarka (grupės „skyrių dalys" / „paslaugos" atskiriamos atskirai)
     stages.sort(function(a,b){return String(a.name||"").localeCompare(String(b.name||""),"lt",{sensitivity:"base"});});
@@ -889,7 +897,7 @@ function viewDetail(){
   function stgRow(s){
     var pl=stagePlanned(s),sp=stageSpent(p.id,s.code),left=pl-sp,o=left<0,pc=pl?sp/pl:0;
     var dch=s.deadline?(function(){var dd=daysBetween(today,s.deadline);var tn=dd<0?"red":dd<=7?"amber":"green";return ' <span class="dl dl-'+tn+'" style="margin-left:6px">iki '+fmtLT(s.deadline)+'</span>';})():'';
-    var subTag=s.sub?' <span class="pill grey" style="font-size:9px;padding:1px 6px">SUBRANGA</span>':'';
+    var subTag=subTagHtml(s);
     var who=(s.pris&&s.pris.length)
       ? (s.pris.length===1
           ? avatar(s.pris[0].name)+'<span style="margin-left:5px;white-space:nowrap;overflow:visible;text-overflow:clip">'+esc(s.pris[0].name)+'</span>'
@@ -996,7 +1004,7 @@ function viewPelningumas(){
     var soldTip=(pr.scale!==1&&raw0!=null)?(' title="Komercinė '+eur(raw0)+' · perskaičiuota '+(dpct>=0?"+":"")+nf(dpct)+'% (įkainis '+eur(rateEff(p,s))+'/d.)"'):'';
     var soldCell='<span class="r mono"'+soldTip+'>'+(base!=null?eur(base):"—")+'</span>';
     var subCell='<span class="r mono '+(subS>0?"neg":"muted")+'">'+(subS>0?"−"+eur(subS):"—")+'</span>';
-    var subTag=s.sub?' <span class="pill grey" style="font-size:9px;padding:1px 6px">SUBRANGA</span>':'';
+    var subTag=subTagHtml(s);
     return '<div class="gr row disc"><span style="font-weight:600;font-size:12.5px">'+esc(s.name)+subTag+'</span>'+soldCell+subCell+'<span class="r mono">'+eur(c)+'</span><span class="r mono '+(lik!=null?(lik<0?"neg":"pos"):"")+'">'+(lik!=null?eur(lik):"—")+'</span></div>';}
   var discP=p.stages.filter(function(s){return !isSvc(s.code);}),svcP=p.stages.filter(function(s){return isSvc(s.code);});
   var discRows=(discP.length&&svcP.length)
@@ -1051,7 +1059,7 @@ function viewSvWork(){
       var planH=stagePlanned(s),distH=(s.pris||[]).reduce(function(a,p){return a+(p.hours||0);},0);
       var dch=s.deadline?(function(){var n=daysBetween(today,s.deadline);return '<span class="dl dl-'+(n<0?"red":n<=7?"amber":"green")+'">iki '+fmtLT(s.deadline)+'</span>';})():'<span class="muted" style="font-size:12px">—</span>';
       var chips=(s.pris||[]).length?(s.pris.map(function(p){return '<span class="asg" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'" data-email="'+esc(p.email)+'" data-sp="'+esc(p.spId||"")+'" title="Keisti priskyrimą / terminą">'+avatar(p.name)+'<span>'+esc(p.name)+'</span><b>'+nfD(p.hours)+' d.</b>'+termBubbles(p.start,p.end)+'<span class="asg-x" data-act="unassign" data-sp="'+esc(p.spId||"")+'" title="Pašalinti">×</span></span>';}).join("")):'<span class="muted" style="font-size:12px">dar nepaskirta</span>';
-      return '<div class="prow svwrow"><span style="font-weight:600">'+esc(s.name)+'</span><span>'+dch+'</span><span class="r mono">'+nfD(planH)+' d.</span><span class="r mono '+(distH>planH?"neg":"")+'">'+nfD(distH)+' d.</span><span class="svw-asg">'+chips+'<button class="btn sm" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'">'+IC.plus+' Priskirti</button></span></div>';
+      return '<div class="prow svwrow"><span style="font-weight:600">'+esc(s.name)+subTagHtml(s)+'</span><span>'+dch+'</span><span class="r mono">'+nfD(planH)+' d.</span><span class="r mono '+(distH>planH?"neg":"")+'">'+nfD(distH)+' d.</span><span class="svw-asg">'+chips+'<button class="btn sm" data-act="assign" data-pid="'+esc(pr.id)+'" data-code="'+esc(s.code)+'">'+IC.plus+' Priskirti</button></span></div>';
     }).join("");
     return hdr+rows;
   }).join("")+'</div></div>'):'<div class="empty">Jūsų skyriui šiuo metu nėra priskirtų projektų dalių.</div>';
@@ -1345,7 +1353,7 @@ function viewModal(){
     var sgCode='<option value="">— pasirink —</option>'+SKYRIAI.map(function(s){return '<option value="'+esc(s.code)+'"'+(m.code===s.code?" selected":"")+'>'+esc(s.code)+' — '+esc(s.name)+'</option>';}).join("");
     var kindSeg='<div class="statseg" style="margin-bottom:9px"><button type="button" class="segbtn'+(!svc?" on":"")+'" data-act="stage-kind" data-k="dept">Skyrius</button><button type="button" class="segbtn'+(svc?" on":"")+'" data-act="stage-kind" data-k="svc">Paslauga</button></div>';
     var codeField=(svc?'<label class="field"><span class="eyebrow">Paslaugos pavadinimas</span><input class="inp" id="sg-name" placeholder="pvz. Viešinimas, PAV atranka, Topografija, SLD" value="'+esc(m.code||"")+'"></label>'
-                     :'<label class="field"><span class="eyebrow">Skyrius / dalis</span><select class="sel" id="sg-code">'+sgCode+'</select></label>')+'<label class="chk" style="margin:-4px 0 12px"><input type="checkbox" id="sg-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>';
+                     :'<label class="field"><span class="eyebrow">Skyrius / dalis</span><select class="sel" id="sg-code">'+sgCode+'</select></label>')+(svc?'<label class="chk" style="margin:-4px 0 12px"><input type="checkbox" id="sg-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>':subModeHtml("sg-subm",m.subm||(m.sub?"full":"none")));
     var note=svc?'':'';
     inner='<div class="form"><h3>Pridėti eilutę</h3><p class="sub">'+esc(selProject().name)+'</p>'+kindSeg+codeField+priceSectionHtml("sg",m.priceMode,m.price,m.rate,m.days,skyriusRate(m.code))+'<label class="field"><span class="eyebrow">Terminas</span>'+dField("sg-due",m.due,"inp")+'</label>'+note+'<button class="btn primary wide" data-act="savestage">Pridėti</button></div>';
   } else if(m.type==="empedit"){var isNew=!m.sp;var p=isNew?{name:"",email:"",role:"PROJ",dept:"",rate:230,tabs:[],inStats:true}:(PEOPLE.find(function(x){return String(x.spId)===String(m.sp);})||{});
@@ -1373,7 +1381,7 @@ function viewModal(){
      '<label class="field"><span class="eyebrow">Vadovas (SV)</span><select class="sel" id="tm-head">'+headOpts+'</select></label>'+
      '<button class="btn primary wide" data-act="saveteam" data-sp="'+esc(m.sp||"")+'">Išsaugoti</button></div>';
   } else if(m.type==="stageedit"){
-    var subChk='<label class="chk" style="margin:-2px 0 12px"><input type="checkbox" id="se-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>';
+    var subChk=m.svc?'<label class="chk" style="margin:-2px 0 12px"><input type="checkbox" id="se-sub"'+(m.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>':subModeHtml("se-subm",m.subm||(m.sub?"full":"none"));
     var nameFld=m.svc?'<label class="field"><span class="eyebrow">Paslaugos pavadinimas</span><input class="inp" id="se-name" value="'+esc(m.code||"")+'" placeholder="pvz. Viešinimas, PAV atranka, Topografija, SLD"></label>':'';
     inner='<div class="form"><h3>Redaguoti '+(m.svc?'paslaugą':'dalį')+'</h3><p class="sub">'+esc(selProject().name)+(m.svc?'':' · '+esc(skyriusName(m.code)))+'</p>'+
      nameFld+
@@ -1438,7 +1446,7 @@ function viewModal(){
       (svc?'<label class="ed-lab">Paslaugos pavadinimas</label><input class="inp" id="st-name-'+i+'" placeholder="pvz. Viešinimas, PAV atranka, Topografija, SLD" value="'+esc(s.code||"")+'" style="margin-bottom:8px">'+
            '<label class="chk" style="margin-bottom:10px"><input type="checkbox" id="st-sub-'+i+'"'+(s.sub?" checked":"")+'> Subranga — darbus atliks subrangovas</label>'
           :'<label class="ed-lab">Skyrius / dalis</label><select class="sel" id="st-code-'+i+'" style="margin-bottom:8px">'+skyriusOptions(s.code)+'</select>'+
-           '<label class="chk" style="margin-bottom:10px"><input type="checkbox" id="st-sub-'+i+'"'+(s.sub?" checked":"")+'> Subranga — darbus atliks subrangovas (neskiriama projektuotojams)</label>')+
+           subModeHtml("st-subm-"+i,s.subm||(s.sub?"full":"none")))+
       '<div class="ed-grid"><div><label class="ed-lab">Parduotos dienos'+(svc?' (nebūt.)':'')+'</label><input class="inp" id="st-days-'+i+'" type="number" min="0" placeholder="0" value="'+esc(s.days)+'"></div>'+
       '<div><label class="ed-lab">Terminas</label>'+dField("st-due-"+i,s.due,"inp")+'</div></div>'+
       '<label class="ed-lab" style="margin-top:8px">Parduota suma, €'+(svc?'':' (nebūt. — kitaip dienos × įkainis)')+'</label><input class="inp" id="st-sum-'+i+'" type="number" min="0" step="0.01" placeholder="'+(svc?'0':'skaičiuojama iš dienų')+'" value="'+esc(s.sum!=null?s.sum:"")+'"></div>';}).join("");
@@ -1567,29 +1575,29 @@ async function saveStage(){var p=selProject();var mm=state.modal||{};var svc=mm.
   var due=document.getElementById("sg-due").value;
   if(!code){alert(svc?"Įvesk paslaugos pavadinimą.":"Pasirink skyrių / dalį.");return;}
   if((p.stages||[]).some(function(s){return s.code===code;})){alert("Ši eilutė ("+code+") projekte jau yra — redaguok esamą.");return;}
-  var subE=document.getElementById("sg-sub");var isub=!!(subE&&subE.checked);
+  var subE=document.getElementById("sg-sub");var smode=svc?((subE&&subE.checked)?"full":"none"):readSubMode("sg-subm");var isub=smode==="full",imix=smode==="mix";
   var sale=readSale("sg",mm.priceMode,skyriusRate(code));var days=sale.days,price=sale.price;state.modal=null;
   await withSave(async function(){
-    var dres=await addItem(L.dalys,{Title:p.id,ProjektoNr:p.id,SkyriausKodas:code,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:isub?"Taip":null});
-    p.stages.push({code:code,name:skyriusName(code),soldDays:days,soldPrice:price,rate:skyriusRate(code),deadline:dOnly(due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id,subSum:0,subDays:0,sub:isub});
+    var dres=await addItem(L.dalys,{Title:p.id,ProjektoNr:p.id,SkyriausKodas:code,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:subWrite(smode)});
+    p.stages.push({code:code,name:skyriusName(code),soldDays:days,soldPrice:price,rate:skyriusRate(code),deadline:dOnly(due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id,subSum:0,subDays:0,sub:isub,subMix:imix});
   });
 }
 async function saveStageEdit(){var p=selProject();var m=state.modal;var st=(p.stages||[]).find(function(s){return s.code===m.code;});if(!st){state.modal=null;render();return;}
   var sale=readSale("se",m.priceMode,skyriusRate(m.code));var days=sale.days,price=sale.price;var due=val("se-due");
-  var subE=document.getElementById("se-sub");var isub=!!(subE&&subE.checked);
+  var subE=document.getElementById("se-sub");var smode=m.svc?((subE&&subE.checked)?"full":"none"):readSubMode("se-subm",subModeOf(st));var isub=smode==="full",imix=smode==="mix";
   var newCode=m.code;
   if(m.svc){var nv=(val("se-name")||"").trim();if(!nv){alert("Įvesk paslaugos pavadinimą.");return;}
     if(nv!==m.code&&(p.stages||[]).some(function(s){return s.code===nv;})){alert("Tokia dalis ar paslauga jau yra šiame projekte.");return;}
     newCode=nv;}
   state.modal=null;
   await withSave(async function(){
-    if(st.spId) await patchItem(L.dalys,st.spId,{SkyriausKodas:newCode,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:isub?"Taip":null});
+    if(st.spId) await patchItem(L.dalys,st.spId,{SkyriausKodas:newCode,ParduotosDienos:days,ParduotaKaina:price,DaliesTerminas:spDate(due),Subranga:subWrite(smode)});
     if(newCode!==m.code){
       var jobs=[];state.regs.forEach(function(r){if(r.pid===p.id&&r.code===m.code){r.code=newCode;if(r.spId)jobs.push(r.spId);}});
       for(var i=0;i<jobs.length;i++){ await patchItem(L.darboLaikas,jobs[i],{SkyriausKodas:newCode}); }
       st.code=newCode; st.name=skyriusName(newCode);
     }
-    st.soldDays=days;st.soldPrice=price;st.deadline=dOnly(due);st.sub=isub;
+    st.soldDays=days;st.soldPrice=price;st.deadline=dOnly(due);st.sub=isub;st.subMix=imix;
   });
 }
 async function saveTaskEdit(sp){var p=selProject();var tk=null;(p.tasks||[]).forEach(function(t){if(String(t.spId)===String(sp))tk=t;});if(!tk){state.modal=null;render();return;}
@@ -1715,8 +1723,8 @@ function snapshotDraft(){if(!state.draft)return;var g=function(id){var e=documen
   var id=g("np-id");if(id!=null)state.draft.id=id;var nm=g("np-name");if(nm!=null)state.draft.name=nm;var st=g("np-start");if(st!=null)state.draft.start=st;var dl=g("np-deadline");if(dl!=null)state.draft.deadline=dl;var pm=g("np-pm");if(pm!=null)state.draft.pm=pm;
   state.draft.stages=state.draft.stages.map(function(s,i){var kind=s.kind==="svc"?"svc":"dept";
     var code=kind==="svc"?(g("st-name-"+i)!=null?g("st-name-"+i):s.code):(g("st-code-"+i)!=null?g("st-code-"+i):s.code);
-    var subE=document.getElementById("st-sub-"+i);var sub=subE?subE.checked:!!s.sub;
-    return {kind:kind,code:code,sub:sub,days:g("st-days-"+i)!=null?g("st-days-"+i):s.days,due:g("st-due-"+i)!=null?g("st-due-"+i):s.due,sum:g("st-sum-"+i)!=null?g("st-sum-"+i):s.sum};});}
+    var subE=document.getElementById("st-sub-"+i);var subm=kind==="svc"?(subE?(subE.checked?"full":"none"):(s.subm||(s.sub?"full":"none"))):(document.querySelector('input[name="st-subm-'+i+'"]')?readSubMode("st-subm-"+i):(s.subm||(s.sub?"full":"none")));
+    return {kind:kind,code:code,sub:subm==="full",subm:subm,days:g("st-days-"+i)!=null?g("st-days-"+i):s.days,due:g("st-due-"+i)!=null?g("st-due-"+i):s.due,sum:g("st-sum-"+i)!=null?g("st-sum-"+i):s.sum};});}
 async function createProject(){snapshotDraft();var d=state.draft;var seenC={};var stages=d.stages.filter(function(s){var c=(s.code||"").trim();if(!c||seenC[c])return false;seenC[c]=1;return true;});if(!d.id.trim()||!d.name.trim()){alert("Įvesk Nr. ir pavadinimą.");return;}
   if(projById(d.id.trim())){alert("Projektas Nr. "+d.id.trim()+" jau egzistuoja. Pasirink kitą numerį.");return;}
   var pmEmail=((d.pm||state.meEmail)||"").toLowerCase();
@@ -1727,9 +1735,9 @@ async function createProject(){snapshotDraft();var d=state.draft;var seenC={};va
     for(var i=0;i<stages.length;i++){var s=stages[i];var code=(s.code||"").trim();var sdays=Number(s.days)||0;var srate=skyriusRate(code);
       var sumIn=(s.sum!=null&&String(s.sum).trim()!=="")?Number(s.sum):null;
       var sprice=sumIn!=null?sumIn:(sdays>0?sdays*srate:null);
-      var isub=!!s.sub;
-      var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:code,ParduotosDienos:sdays,ParduotaKaina:sprice,DaliesTerminas:spDate(s.due),Subranga:isub?"Taip":null});
-      proj.stages.push({code:code,name:skyriusName(code),soldDays:sdays,soldPrice:sprice,rate:srate,deadline:dOnly(s.due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id,subSum:0,subDays:0,sub:isub});
+      var smode=s.subm||(s.sub?"full":"none");var isub=smode==="full",imix=smode==="mix";
+      var dres=await addItem(L.dalys,{Title:d.id,ProjektoNr:d.id,SkyriausKodas:code,ParduotosDienos:sdays,ParduotaKaina:sprice,DaliesTerminas:spDate(s.due),Subranga:subWrite(smode)});
+      proj.stages.push({code:code,name:skyriusName(code),soldDays:sdays,soldPrice:sprice,rate:srate,deadline:dOnly(s.due),resp:null,assignees:[],pris:[],prisIds:[],spId:dres.id,subSum:0,subDays:0,sub:isub,subMix:imix});
     }
     PROJECTS.push(proj);state.selId=proj.id;state.view="detail";state.tab="projektai";
   });
@@ -1782,11 +1790,11 @@ document.addEventListener("click",function(e){
   else if(a==="savetask"){saveTask();}
   else if(a==="addstage"){state.modal={type:"stage",kind:"dept",priceMode:"days",code:"",days:"",due:"",price:"",rate:"",sub:false};render();}
   else if(a==="savestage"){saveStage();}
-  else if(a==="stage-kind"){var mm=state.modal;if(mm){var dE=document.getElementById("sg-days");if(dE)mm.days=dE.value;var uE=document.getElementById("sg-due");if(uE)mm.due=uE.value;var pE=document.getElementById("sg-price");if(pE)mm.price=pE.value;var rE=document.getElementById("sg-rate");if(rE)mm.rate=rE.value;var bE=document.getElementById("sg-sub");if(bE)mm.sub=bE.checked;mm.kind=el.getAttribute("data-k")==="svc"?"svc":"dept";mm.code="";render();}}
+  else if(a==="stage-kind"){var mm=state.modal;if(mm){var dE=document.getElementById("sg-days");if(dE)mm.days=dE.value;var uE=document.getElementById("sg-due");if(uE)mm.due=uE.value;var pE=document.getElementById("sg-price");if(pE)mm.price=pE.value;var rE=document.getElementById("sg-rate");if(rE)mm.rate=rE.value;var bE=document.getElementById("sg-sub");if(bE)mm.sub=bE.checked;if(document.querySelector('input[name="sg-subm"]')){mm.subm=readSubMode("sg-subm");mm.sub=mm.subm==="full";}mm.kind=el.getAttribute("data-k")==="svc"?"svc":"dept";mm.code="";render();}}
   else if(a==="editstage"){var ec=el.getAttribute("data-code");var est=(selProject().stages||[]).find(function(s){return s.code===ec;})||{};
     var hasDays=(est.soldDays||0)>0;var mode=hasDays?"days":(est.soldPrice!=null?"sum":"days");
     var inferRate=(hasDays&&est.soldPrice!=null)?(Math.round((est.soldPrice/est.soldDays)*100)/100):skyriusRate(ec);
-    state.modal={type:"stageedit",code:ec,svc:isSvc(ec),sub:!!est.sub,priceMode:mode,days:(est.soldDays!=null?est.soldDays:""),due:est.deadline||"",price:(est.soldPrice!=null?est.soldPrice:""),rate:(mode==="days"?inferRate:"")};render();}
+    state.modal={type:"stageedit",code:ec,svc:isSvc(ec),sub:!!est.sub,subm:subModeOf(est),priceMode:mode,days:(est.soldDays!=null?est.soldDays:""),due:est.deadline||"",price:(est.soldPrice!=null?est.soldPrice:""),rate:(mode==="days"?inferRate:"")};render();}
   else if(a==="pricemode"){var mm=state.modal;if(mm){var pfx=mm.type==="stage"?"sg":"se";var dE=document.getElementById(pfx+"-days");if(dE)mm.days=dE.value;var uE=document.getElementById(pfx+"-due");if(uE)mm.due=uE.value;var cE=document.getElementById("sg-code");if(cE)mm.code=cE.value;var nE=document.getElementById("sg-name");if(nE)mm.code=nE.value;var pE=document.getElementById(pfx+"-price");if(pE)mm.price=pE.value;var rE=document.getElementById(pfx+"-rate");if(rE)mm.rate=rE.value;var bE=document.getElementById(pfx+"-sub");if(bE)mm.sub=bE.checked;mm.priceMode=el.getAttribute("data-m");render();}}
   else if(a==="savestageedit"){saveStageEdit();}
   else if(a==="editpm"){state.modal={type:"pmedit"};render();}
