@@ -434,7 +434,6 @@ var msalApp = new msal.PublicClientApplication({
 var account=null;
 var authBusy=false;      // true kol vyksta interaktyvus MSAL veiksmas (popup/redirect)
 var _tokPromise=null;    // vienu metu tik VIENAS tokeno gavimas (kad nebūtų interaction_in_progress)
-var IS_MOBILE=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 async function spToken(){
   if(_tokPromise) return _tokPromise;            // jei jau vyksta — laukiam to paties, nekuriam naujo
@@ -442,8 +441,8 @@ async function spToken(){
     var req={scopes:SP_SCOPES, account:account||msalApp.getActiveAccount()};
     try{ return (await msalApp.acquireTokenSilent(req)).accessToken; }
     catch(e){
-      if(IS_MOBILE){ await msalApp.acquireTokenRedirect(req); throw new Error("Nukreipiama į prisijungimą — bandykite dar kartą."); }
-      return (await msalApp.acquireTokenPopup(req)).accessToken;
+      // be popup: jei tylusis atnaujinimas nepavyko — nukreipiam į Microsoft prisijungimą (grįžtama į tą patį puslapį)
+      await msalApp.acquireTokenRedirect(req); throw new Error("Nukreipiama į prisijungimą…");
     }
   })();
   try{ return await _tokPromise; } finally{ _tokPromise=null; }
@@ -1892,13 +1891,10 @@ async function doLogin(){
   authBusy=true;
   var request={scopes:LOGIN_SCOPES};
   try{
-    if(IS_MOBILE){ await msalApp.loginRedirect(request); return; }
-    var resp=await msalApp.loginPopup(request);
-    account=resp.account; msalApp.setActiveAccount(account);
-    await afterLogin();
+    // visada nukreipimu (be iššokančio lango, kurį dalis naršyklių blokuoja); po prisijungimo grįžtama čia, init() → handleRedirectPromise()
+    await msalApp.loginRedirect(request); return;
   }catch(e){
-    if(["block_nested_popups","popup_window_error","empty_window_error"].indexOf(e.errorCode)>=0){ try{ await msalApp.loginRedirect(request); }catch(e2){ state.err="Prisijungti nepavyko: "+e2.message; render(); } }
-    else if(e.errorCode==="interaction_in_progress"){ state.err="Prisijungimas jau vykdomas. Palaukite kelias sekundes arba perkraukite puslapį (F5) ir bandykite dar kartą."; render(); }
+    if(e.errorCode==="interaction_in_progress"){ state.err="Prisijungimas jau vykdomas. Palaukite kelias sekundes arba perkraukite puslapį (F5) ir bandykite dar kartą."; render(); }
     else if(e.errorCode!=="user_cancelled"){ state.err="Prisijungti nepavyko: "+e.message; render(); }
   }finally{ authBusy=false; }
 }
